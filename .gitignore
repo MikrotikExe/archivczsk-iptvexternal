@@ -1,0 +1,8 @@
+.settings
+.project
+.pydevproject
+*.pyo
+*.pyc
+hashes
+*.mo
+atk_client.py
