@@ -91,6 +91,7 @@ a ponúkne update koncovým používateľom.
 ├── rebuild_lang.sh                          ← .po regenerátor
 ├── addon_settings2pot.py                    ← helper pre extrakciu stringov zo settings.xml
 ├── .gitignore
+├── LICENSE                                  ← GPL-2.0 licenčný text
 ├── repo/                                    ← release ZIP-y (jeden sub-dir per addon)
 │   ├── plugin.video.tvheadend/
 │   │   └── plugin.video.tvheadend-0.58.4.zip
@@ -130,4 +131,5 @@ sami a používatelia si ho pridajú do ArchivCZSK GUI len ak chcú.
 
 ## Licencia
 
-GPL-2.0 (rovnaká ako ArchivCZSK)
+Pod licenciou GNU General Public License v2.0 — plný text v súbore
+[LICENSE](LICENSE). Rovnaká licencia ako ArchivCZSK.
