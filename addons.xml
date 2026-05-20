@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <addons>
 <addon id="plugin.video.e2m3u2bouquet" name="E2m3u2bouquet" version="0.1.3" hash="c5e7d2d31d2130b56521a83dea022c16" rhash="efd8914e70f3ca20a2820c2c0b0d9fb9" />
-<addon id="plugin.video.tvheadend" name="Tvheadend" version="0.58.2" hash="81f2e0f37096adf3223cd058fdb3c12b" rhash="79c45851cff19e24b52c532d8f754295" />
+<addon id="plugin.video.tvheadend" name="Tvheadend" version="0.58.4" hash="f9405eeebb7c48449d78255f2896b3ec" rhash="76daf337a363890f0e1a697e51280710" />
 </addons>
