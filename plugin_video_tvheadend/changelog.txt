@@ -1,5 +1,5 @@
 Tvheadend plugin pre archivCZSK
-Verzia 0.58.2 (19.5.2026)
+Verzia 0.58.4 (19.5.2026)
 ================================================================
 
 Klient pre Tvheadend server na sledovanie živej TV, rádia
@@ -51,6 +51,38 @@ Watchdog:
   - Automatické sledovanie offline → online prechodu TVH servera
   - Pri detekcii online stavu spustí obnovu bouquetu a picons
   - Netreba manuálne otvoriť plugin po reštarte TVH servera
+
+
+NOVINKY VO VERZII 0.58.4
+----------------------------------------------------------------
+
+  - Cleanup: odstránených ~50 riadkov dead code (zostatok po
+    refactor-och 0.58.2 a skyjet PR review):
+    - fetch_xmltv_bytes() v tvheadend.py (z odstránenej custom
+      EPG cesty)
+    - cache_size() + cache_wipe() v imdb_lookup.py (žiadny
+      caller, komentár hovoril o neexistujúcom Diagnostics menu)
+    - translate() v bouquet.py (helper bez callers)
+    - import io, gzip v provider.py (z odstránenej custom
+      XMLTV decompression)
+    - _strip_accents_compat alias v classifier.py (wrapper z
+      PR #13 nahradený _strip_accents_lower s vlastnou impl)
+    - ~15 riadkov stale komentárov o odstránených metódach
+
+  - Žiadny vplyv na funkcionalitu, len cleaner codebase.
+
+
+NOVINKY VO VERZII 0.58.3
+----------------------------------------------------------------
+
+  - Opravené: framework EPG injection cez EnigmaEpgGenerator
+    sa nikdy nespúšťala kvôli stale override v get_setting()
+    ktorý vracal enable_xmlepg=False bez ohľadu na user
+    nastavenie. Po inštalácii čistého image-u plugin negeneroval
+    EPG do Enigma2 eEPGCache.
+
+  - Nastavenie enable_xmlepg teraz korektne čítané z user
+    settings (default true).
 
 
 NOVINKY VO VERZII 0.58.2

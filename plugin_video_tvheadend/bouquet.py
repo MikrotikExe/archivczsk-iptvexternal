@@ -379,15 +379,13 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 			return default
 
 	def get_setting(self, name):
-		# FIX 0.48e: XML EPG cesta bola odstránená — pre staré inštalácie
-		# kde užívateľ má enable_xmlepg=true vrátime False, aby framework
-		# neprodukoval XML súbory.
-		if name == 'enable_xmlepg':
-			return False
-		if name == 'xmlepg_dir':
-			return ''
-		if name == 'xmlepg_days':
-			return 0
+		# FIX 0.58.2 (skyjet PR #22 review #11 follow-up):
+		# Odstránené hardcoded overrides `enable_xmlepg=False`,
+		# `xmlepg_dir=''`, `xmlepg_days=0` (boli z 0.48e keď plugin
+		# používal vlastnú custom EPG injection cestu a chcel
+		# blokovať framework XML EPG export). Teraz framework
+		# `EnigmaEpgGenerator` má naopak BEŽAŤ — settings sa čítajú
+		# z user settings.xml ako bool/int.
 
 		# FIX 0.57.0 (skyjet PR #22 review): odstránený priame čítanie
 		# /etc/enigma2/settings cez vlastný parser — framework
@@ -407,7 +405,11 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 			# FIX 0.58.2: enable_xmlepg bool toggle (framework default name)
 			"enable_xmlepg",
 		):
-			return self._to_bool(val, default=False)
+			# FIX 0.58.2: enable_xmlepg default=True (settings.xml má
+			# default="true"), takže pre fresh install pred prvým save
+			# settingov chceme vrátiť True ak setting nie je v configu.
+			default = True if name == "enable_xmlepg" else False
+			return self._to_bool(val, default=default)
 
 		# FIX 0.58.2: framework default name `xmlepg_days` (predtým `enigmaepg_days`)
 		if name == "xmlepg_days":
@@ -424,12 +426,6 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 
 	def logged_in(self):
 		return True
-
-	def translate(self, txt):
-		try:
-			return self.cp._(txt)
-		except Exception:
-			return txt
 
 	# -------------------------------------------------
 	# ✅ TVH TAGS -> RADIO DETECT (+ categories)
@@ -738,18 +734,6 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 
 
 
-	# FIX 0.58.2: 6 EPG-injection helpers odstránených spolu s custom
-	# inject_tvh_epg_into_enigma() path:
-	# - _find_bouquet_files
-	# - _is_tvheadend_bouquet_file
-	# - _looks_like_uuid
-	# - _b64_to_text
-	# - _extract_url_from_service_ref
-	# - _extract_channel_uuid
-	# Framework EnigmaEpgGenerator extrahuje service ref priamo z
-	# channel['id'] cez build_service_ref formulu — žiadne parsing
-	# bouquet súborov.
-
 	def _read_lines(self, path):
 		try:
 			if not os.path.isfile(path):
@@ -903,35 +887,9 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 		if renamed_to:
 			self._ensure_bouquets_radio_has(renamed_to[0])
 
-	# -------------------------------------------------
-	# FIX 0.58.2 (skyjet PR #22 review #11 follow-up):
-	# Custom EPG injection cesta (~175 LoC) odstránená — framework
-	# `BouquetXmlEpgGenerator.refresh_xmlepg()` automaticky volá
-	# `EnigmaEpgGenerator.run()` → iteruje cez `get_xmlepg_channels()`
-	# + `get_epg()` → `eEPGCache.importEvent(serviceref, epg_data)`.
-	#
-	# Predtým existovali paralelne 2 EPG injection cesty:
-	# 1. Framework (auto-triggered cez refresh_xmlepg) — VŽDY fungovala
-	#    keď `enable_xmlepg=True` a plugin má `get_xmlepg_channels()`
-	#    + `get_epg()` (existujú v tomto súbore)
-	# 2. Custom `inject_tvh_epg_into_enigma()` — bulk XMLTV download +
-	#    parse + custom service ref extraction z userbouquet súborov
-	#
-	# Cesta 2 bola **redundantná** a navyše broken (po skyjet review
-	# #11 rename `m3u_epg_injector.py` → `epg_injector.py` zlyhával
-	# pri upgrade users s legacy filename). Plus celý code path:
-	# - `inject_tvh_epg_into_enigma()` method
-	# - `_build_uuid_to_short_sref_from_bouquets()` + helpers
-	#   (`_extract_channel_uuid`, `_b64_to_text`, `_looks_like_uuid`,
-	#   `_extract_url_from_service_ref`)
-	# - `epg_injector.py` modul (separate file)
-	# - `provider.py:_maybe_auto_inject_epg()` + `_EPG_INJECT_STAMP`
-	# - `provider.py:action_tvh_inject_epg()` menu item
-	# - Setting `tvh_epg_inject_interval` (nahradené `enable_xmlepg`)
-	#
-	# Existujúce framework-aligned methods `get_xmlepg_channels()`
-	# a `get_epg(channel, fromts, tots)` ostávajú a sú teraz hlavnou
-	# cestou. -------------------------------------------------
+	# Framework EPG injection: BouquetXmlEpgGenerator.refresh_xmlepg()
+	# automaticky volá EnigmaEpgGenerator.run() → iteruje cez
+	# get_xmlepg_channels() + get_epg() → eEPGCache.importEvent().
 
 
 	def refresh_userbouquet_start(self, *args, **kwargs):

@@ -337,21 +337,6 @@ def _save_cache(force=False):
 			_log(2, 'cache save failed: %s' % e)
 
 
-def cache_size():
-	"""For diagnostics — number of entries in cache."""
-	_load_cache_if_needed()
-	with _CACHE_LOCK:
-		return len(_CACHE_STATE['data'])
-
-
-def cache_wipe():
-	"""Wipe cache (called from Settings → Diagnostics)."""
-	with _CACHE_LOCK:
-		_CACHE_STATE['data'] = {}
-		_CACHE_STATE['dirty'] = True
-		_save_cache(force=True)
-
-
 # ---------------------------------------------------------------------------
 # GraphQL request
 # ---------------------------------------------------------------------------

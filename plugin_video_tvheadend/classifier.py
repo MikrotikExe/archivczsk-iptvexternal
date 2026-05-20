@@ -32,7 +32,9 @@ import io
 import json
 import time
 
-from tools_archivczsk.string_utils import strip_accents as _strip_accents_compat
+# FIX 0.58.4: removed dead `from tools_archivczsk.string_utils import
+# strip_accents as _strip_accents_compat` — wrapper alias z PR #13 ktorý
+# nikde nepoužitý. `_strip_accents_lower()` má vlastnú impl s unicodedata.
 
 # FIX 0.57.0: callback-based logging cez framework cp.log_info(). Provider
 # nastaví callback pri __init__-e. Bez nastaveného callback-u (test mode)

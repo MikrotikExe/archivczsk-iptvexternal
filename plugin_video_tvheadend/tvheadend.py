@@ -378,44 +378,6 @@ class Tvheadend(object):
 		             timeout_override=self._CHECK_LOGIN_TIMEOUT)
 		return True
 
-	# FIX 0.48d: helper na fetch XMLTV z TVH /xmltv/channels endpointu.
-	# Použité pre direct EPG injection do Enigma2 eEPGCache (nezávisle od
-	# epgimport pluginu). TVH endpoint vracia plain XML, niekedy gzipped
-	# podľa Accept-Encoding — requests session to handluje transparentne.
-	def fetch_xmltv_bytes(self, timeout=60, retries=2):
-		"""Stiahne XMLTV z TVH ako bytes. Pri chybe vyhodí AddonErrorException.
-
-		Vstup:
-		    timeout: timeout v sekundách (default 60 lebo XMLTV pri 600+
-		             kanáloch × 5 dní môže mať 10-50 MB)
-		    retries: koľkokrát skúsiť pri network failure
-		"""
-		url = self._url('xmltv/channels')
-		last_err = None
-		for attempt in range(retries + 1):
-			with self._req_lock:
-				self._apply_auth_to_session()
-				try:
-					resp = self.req.get(url, timeout=timeout)
-				except Exception as e:
-					last_err = e
-					resp = None
-
-			if resp is not None:
-				status = getattr(resp, 'status_code', 0)
-				if status == 200:
-					return resp.content
-				last_err = Exception("HTTP %s for %s" % (status, url))
-
-			if attempt < retries:
-				try:
-					time.sleep(1.0 * (attempt + 1))
-				except Exception:
-					pass
-
-		raise AddonErrorException('XMLTV fetch failed: %s' %
-		                           (str(last_err) if last_err else 'unknown'))
-
 	# ------------------------------------------------------------------
 	# Stream URL
 	# ------------------------------------------------------------------

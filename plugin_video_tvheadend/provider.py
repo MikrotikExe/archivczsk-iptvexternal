@@ -17,10 +17,8 @@ from __future__ import absolute_import, unicode_literals, print_function
 
 import os
 import sys
-import io
 import json
 import time
-import gzip
 import base64
 import unicodedata
 from datetime import datetime
