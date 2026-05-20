@@ -1,125 +1,134 @@
+[English](README.md) | [Slovenčina](README.sk.md) | [Čeština](README.cs.md)
+
 # archivczsk-iptvexternal
 
-Vlastný repozitár doplnkov pre [ArchivCZSK](https://github.com/archivczsk/archivczsk)
+Custom addon repository for the [ArchivCZSK](https://github.com/archivczsk/archivczsk)
 Enigma2 plugin.
 
-Obsahuje doplnky **Tvheadend client** a **E2m3u2bouquet** ktoré rozšíria
-ArchivCZSK o sledovanie živej TV, rádia a IPTV M3U playlistov.
+Adds support for external IPTV sources (Tvheadend server, M3U playlist) by
+generating Enigma2 userbouquets and injecting EPG so channels appear
+natively in the Enigma2 channel list.
 
-## Doplnky v tomto repe
+## Addons in this repository
 
 ### 🎬 plugin.video.tvheadend — Tvheadend client
 
-Klient pre [Tvheadend](https://tvheadend.org/) server cez ArchivCZSK framework:
+Client for a [Tvheadend](https://tvheadend.org/) server via the ArchivCZSK
+framework:
 
-- Browse Tvheadend channels (live TV + radio) priamo z ArchivCZSK
-- DVR archive playback s vyhľadávaním a žánrovou kategorizáciou
-- Picon download cez Tvheadend `imagecache`
-- Auto-generated Enigma2 userbouquet pre TV + Radio
-- Direct EPG injection do Enigma2 `eEPGCache`
-- Lokalizácia: 🇸🇰 slovenčina, 🇨🇿 čeština, 🇬🇧 angličtina
+- Browse Tvheadend channels (live TV + radio) directly from ArchivCZSK
+- DVR archive playback with title search and genre categorisation
+- Picon download via the Tvheadend `imagecache` endpoint
+- Auto-generated Enigma2 userbouquet for TV + Radio
+- Direct EPG injection into the Enigma2 `eEPGCache` (no epgimport plugin required)
+- Localised in 🇸🇰 Slovak, 🇨🇿 Czech and 🇬🇧 English
 
 ### 📡 plugin.video.e2m3u2bouquet — E2m3u2bouquet
 
-Konvertor M3U playlistov do Enigma2 bouquetu — pre akýkoľvek M3U zdroj:
+Converts an M3U playlist into an Enigma2 userbouquet — works with any
+M3U source:
 
 - M3U playlist download + parse (HTTP, HTTPS, gzip)
-- Generovanie `userbouquet.m3u_iptv.tv` (+ `.radio` pre rádiá) s tvg-id mapping
-- XMLTV EPG injection (vlastný feed alebo TVH XMLTV endpoint)
-- Picon download z `tvg-logo` URL
-- Channel mapping override XML pre custom sort/group naming
-- Optional Tvheadend integration (channel enrichment z TVH API)
-- Auto-refresh playlistu a EPG na intervaly (4h, 8h, 24h, 2d, 7d)
+- Generates `userbouquet.m3u_iptv.tv` (+ `.radio` for radio stations) with
+  tvg-id mapping
+- XMLTV EPG injection (your own feed or the TVH XMLTV endpoint)
+- Picon download from `tvg-logo` URLs
+- Channel mapping override XML for custom sort/group naming
+- Optional Tvheadend integration (channel enrichment via the TVH API)
+- Auto-refresh of playlist and EPG on configurable intervals (4h, 8h, 24h, 2d, 7d)
 
-## Inštalácia v ArchivCZSK
+## Installing in ArchivCZSK
 
-V ArchivCZSK GUI prejdi na správu repozitárov a pridaj URL tohto repa.
-Detaily sa pridajú keď bude funkcia oficiálne dostupná v ArchivCZSK.
+In the ArchivCZSK GUI, open repository management and add the URL of this
+repository. Step-by-step instructions will be added once the feature is
+officially available in ArchivCZSK.
 
-## Vývoj a nové verzie
+## Development and releases
 
-Source code oboch doplnkov je v `plugin_video_tvheadend/` a
-`plugin_video_e2m3u2bouquet/` adresároch.
+Source code for both addons lives in `plugin_video_tvheadend/` and
+`plugin_video_e2m3u2bouquet/`.
 
-### Pridanie nových stringov na lokalizáciu
+### Adding new localisation strings
 
-Po pridaní `_('...')` volaní v Python kóde alebo nových labelov v
+After adding a `_('...')` call in Python code or a new label in
 `settings.xml`:
 
 ```bash
 ./rebuild_lang.sh plugin_video_e2m3u2bouquet
 ```
 
-Skript zaktualizuje `resources/language/cs.po` + `sk.po` o nové stringy.
-Otvor `.po` súbor v [POEditor](https://poeditor.com/) (alebo `poedit`) a
-prelož msgid → msgstr.
+The script updates `resources/language/cs.po` and `sk.po` with any new
+strings. Open the `.po` file in [POEditor](https://poeditor.com/) (or
+`poedit`) and translate the empty `msgstr` entries.
 
-### Vydanie novej verzie
+### Cutting a new release
 
-Po úprave kódu a/alebo prekladov:
+After editing code and/or translations:
 
 ```bash
-# Bump verziu v addon.xml + pridaj entry do changelog.txt
+# Bump version in addon.xml + add an entry to changelog.txt
 vim plugin_video_e2m3u2bouquet/addon.xml      # version="0.1.4"
 vim plugin_video_e2m3u2bouquet/changelog.txt  # 0.1.4 - changelog entry
 
-# Build ZIP do repo/ + auto-update addons.xml + auto-commit
+# Build ZIP into repo/ + auto-update addons.xml + auto-commit
 ./make_release.py
 
-# Push na GitHub
+# Push to GitHub
 git push
 ```
 
-ArchivCZSK auto-update detekuje vyššiu verziu v `addons.xml` na GitHub-e
-a ponúkne update užívateľovi.
+ArchivCZSK auto-update detects the bumped version in `addons.xml` on
+GitHub and offers the update to end users.
 
-### Štruktúra repa
+### Repository layout
 
 ```
 .
-├── README.md                                ← táto stránka
+├── README.md                                ← this page
+├── README.sk.md                             ← Slovak version
+├── README.cs.md                             ← Czech version
 ├── addons.xml                               ← manifest (auto-managed by make_release.py)
 ├── make_release.py                          ← release script
 ├── rebuild_lang.sh                          ← .po regenerator
-├── addon_settings2pot.py                    ← helper pre extrakciu strings zo settings.xml
+├── addon_settings2pot.py                    ← helper that extracts strings from settings.xml
 ├── .gitignore
-├── repo/                                    ← release ZIP-y (jedno sub-dir per addon)
+├── repo/                                    ← release ZIPs (one sub-dir per addon)
 │   ├── plugin.video.tvheadend/
-│   │   └── plugin.video.tvheadend-0.58.2.zip
+│   │   └── plugin.video.tvheadend-0.58.4.zip
 │   └── plugin.video.e2m3u2bouquet/
 │       └── plugin.video.e2m3u2bouquet-0.1.3.zip
 ├── plugin_video_tvheadend/                  ← source: Tvheadend client
 └── plugin_video_e2m3u2bouquet/              ← source: M3U to Bouquet
 ```
 
-### Lokalizácia — file layout
+### Localisation — file layout
 
-`.po` súbory sa nachádzajú na **top-level**:
+`.po` files live at the **top of the language directory**:
 
 ```
 plugin_video_e2m3u2bouquet/
 └── resources/
     └── language/
-        ├── cs.po       ← Czech translations (committed in git)
-        └── sk.po       ← Slovak translations (committed in git)
+        ├── cs.po       ← Czech translations (committed)
+        └── sk.po       ← Slovak translations (committed)
 ```
 
-`.mo` súbory **nie sú v git-e** — `make_release.py` ich vyrobí cez
-`msgfmt` priamo do ZIP-u pri každom release-i, do
+`.mo` files are **not committed** — `make_release.py` builds them via
+`msgfmt` straight into the release ZIP at
 `resources/language/<lang>/LC_MESSAGES/<addon_id>.mo`.
 
-## Pôvod
+## Origin
 
-Tento repozitár obsahuje doplnky ktoré napájajú externé IPTV zdroje
-(Tvheadend server, M3U playlist) do Enigma2 cez ArchivCZSK framework
-a automaticky generujú userbouquety pre prehliadanie v Enigma2 channel
-liste. Pôvodne navrhnuté ako PR do oficiálneho
+This repository hosts addons that connect external IPTV sources
+(Tvheadend server, M3U playlist) to Enigma2 through the ArchivCZSK
+framework and auto-generate userbouquets so channels show up in the
+Enigma2 channel list. Originally proposed as a PR to the official
 [`archivczsk/archivczsk-doplnky`](https://github.com/archivczsk/archivczsk-doplnky)
-repa, po review-i sa s autorom ArchivCZSK
-([@skyjet18](https://github.com/skyjet18)) dohodlo že pluginy budú
-udržiavané v tomto samostatnom repe — release cyklus si robíme sami
-a používatelia si ho pridajú do ArchivCZSK GUI len ak chcú.
+repository — after review with the ArchivCZSK maintainer
+([@skyjet18](https://github.com/skyjet18)) we agreed to keep them in
+this separate repository so the release cycle is independent and users
+can opt in by adding it in the ArchivCZSK GUI.
 
-## Licencia
+## License
 
-GPL-2.0 (rovnaká ako ArchivCZSK)
+GPL-2.0 (same as ArchivCZSK)
