@@ -106,7 +106,10 @@ class M3URefreshManager(object):
 	    m3u_bouquet_dir          str        default /etc/enigma2
 	    m3u_picon_dir            str        default /usr/share/enigma2/picon
 	    m3u_epgimport_dir        str        default /etc/epgimport
-	    m3u_write_epgimport      bool
+	                                        (legacy cleanup only — addon
+	                                        does NOT write to this dir
+	                                        anymore, but cleanup() still
+	                                        removes leftover files there)
 	"""
 
 	def __init__(self, settings_getter, log=None, tvh_client=None):
@@ -327,17 +330,12 @@ class M3URefreshManager(object):
 			'add_category_markers': True,
 			'bouquet_dir': self._str('m3u_bouquet_dir') or DEFAULT_BOUQUET_DIR,
 			'picon_dir': self._str('m3u_picon_dir') or DEFAULT_PICON_DIR,
-			'epgimport_dir': self._str('m3u_epgimport_dir') or DEFAULT_EPGIMPORT_DIR,
 			'download_picons': self._bool('m3u_picons_from_logo', True),
-			# FIX 0.48g: write_epgimport setting odstránený z UI, vždy False.
-			# Generation epgimport XML súborov je duplicitná s direct EPG
-			# injection ktorý robí to isté efektívnejšie. Pre legacy
-			# inštalácie ktoré majú m3u_write_epgimport=true v
-			# /etc/enigma2/settings tým túto hodnotu ignorujeme.
-			'write_epgimport': False,
-			'epg_source_url': epg_url,
-			'epg_source_description': 'M3U IPTV (%s)' %
-			    self._str('m3u_bouquet_name', 'IPTV'),
+			# Pozn. (audit): write_epgimport_files() bola odstránená — direct
+			# EPG injection cez m3u_epg_injector ju nahradila. Cleanup ale
+			# stále spracúva legacy /etc/epgimport/<prefix>.channels.xml +
+			# .sources.xml — to robí cleanup_m3u_bouquet() ktoré si epgimport_dir
+			# berie z vlastného argumentu (M3URefreshManager.cleanup() vyššie).
 		}
 
 		writer = M3UBouquetWriter(provider, settings, log=self.log)
@@ -697,7 +695,6 @@ if __name__ == '__main__':
 		'm3u_picon_dir': '/tmp/test_picons',
 		'm3u_epgimport_dir': '/tmp/test_epgimport',
 		'm3u_picons_from_logo': False,
-		'm3u_write_epgimport': True,
 		'm3u_refresh_interval': 0,
 	}
 	for d in ('/tmp/test_bouquet', '/tmp/test_picons', '/tmp/test_epgimport'):

@@ -1,5 +1,5 @@
 Tvheadend plugin pre archivCZSK
-Verzia 0.58.4 (19.5.2026)
+Verzia 0.59.0 (21.5.2026)
 ================================================================
 
 Klient pre Tvheadend server na sledovanie živej TV, rádia
@@ -51,6 +51,34 @@ Watchdog:
   - Automatické sledovanie offline → online prechodu TVH servera
   - Pri detekcii online stavu spustí obnovu bouquetu a picons
   - Netreba manuálne otvoriť plugin po reštarte TVH servera
+
+
+NOVINKY VO VERZII 0.59.0
+----------------------------------------------------------------
+
+  - Opravené: pri zapnutom oddelení rozhlasových staníc do Radio
+    bouquetu sa rozhlasové stanice nesprávne objavovali aj v TV
+    bouquetoch. Tvheadend Radio bouquet teraz korektne končí
+    v sekcii Bouquets (Radio) — rovnako ako to robí
+    e2m3u2bouquet plugin pre M3U rádia.
+
+  - Opravené: po vypnutí automatického generovania userbouquetu
+    zostával Tvheadend Radio bouquet visieť v Radio sekcii.
+    Teraz sa pri vypnutí setting-u automaticky zmaže spolu s TV
+    bouquetom a zmizne referencia z master súborov.
+
+  - Po zapnutí/vypnutí auto-generovania v UI sa zmeny prejavia
+    okamžite — bez potreby reštartu Enigma2 alebo manuálneho
+    reload-u bouquetov.
+
+  - Vylepšená diagnostika v archivCZSK logu: kľúčové operácie
+    pri generovaní a mazaní bouquetov teraz logujú vstupné
+    podmienky a výsledok, čo umožňuje rýchlejšiu identifikáciu
+    problémov ak by nastali.
+
+  - Drobný cleanup: odstránených pár nepoužitých importov a
+    jedna mŕtva diagnostická hláška ktorá kvôli kontextovej
+    chybe nikdy nedosiahla log.
 
 
 NOVINKY VO VERZII 0.58.4

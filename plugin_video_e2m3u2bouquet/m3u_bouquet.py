@@ -188,12 +188,14 @@ class M3UBouquetWriter(object):
 		    add_category_markers    (bool)  insert category separators
 		    bouquet_dir             (str)   default /etc/enigma2
 		    picon_dir               (str)   default /usr/share/enigma2/picon
-		    epgimport_dir           (str)   default /etc/epgimport
 		    download_picons         (bool)
 		    picon_format            (str)   'png' (default)
-		    write_epgimport         (bool)
-		    epg_source_url          (str)   public URL for sources.xml (can equal provider.epg_url)
-		    epg_source_description  (str)
+
+		Note: `epgimport_dir`, `write_epgimport`, `epg_source_url`,
+		`epg_source_description` keys boli odstránené v audite — write
+		path do /etc/epgimport/ nahradila direct injection cez
+		m3u_epg_injector. Cleanup ale ešte tieto súbory vie zmazať pre
+		legacy inštalácie (cez `cleanup_m3u_bouquet()`).
 		"""
 		self.provider = provider
 		self.s = settings
@@ -515,102 +517,27 @@ class M3UBouquetWriter(object):
 		         % (downloaded, skipped, failed))
 
 	# ------------------ epgimport integration ------------------
-
-	def write_epgimport_files(self):
-		"""
-		Generate two files for the epgimport plugin:
-		  /etc/epgimport/<prefix>.channels.xml
-		  /etc/epgimport/<prefix>.sources.xml
-		"""
-		if not bool(self.s.get('write_epgimport', True)):
-			return None
-		if not self.s.get('epg_source_url'):
-			self.log('[M3U] No EPG source URL configured; skipping epgimport export')
-			return None
-
-		epgimport_dir = self.s.get('epgimport_dir', DEFAULT_EPGIMPORT_DIR)
-		if not os.path.isdir(epgimport_dir):
-			try:
-				os.makedirs(epgimport_dir)
-			except Exception as e:
-				self.log('[M3U] Cannot create epgimport dir: %s' % e)
-				return None
-
-		# FIX 0.48f: hardcoded M3U_BOUQUET_PREFIX
-		prefix = _safe_filename(self.s.get('bouquet_prefix') or M3U_BOUQUET_PREFIX)
-		channels_file = '{}.channels.xml'.format(prefix)
-		sources_file = '{}.sources.xml'.format(prefix)
-
-		# --- channels.xml ---
-		channels_path = os.path.join(epgimport_dir, channels_file)
-		lines = ['<channels>']
-		total_entries = 0
-		for ch in self.provider.get_all_channels():
-			ref = ch.get('_service_ref')
-			if not ref:
-				continue
-			# epgimport wants 'name:type:flags:stype:sid:tsid:onid:ns:p1:p2:p3:'
-			# i.e. first 10 fields + trailing ':' (no URL/name)
-			ref_no_url = ':'.join(ref.split(':')[:10]) + ':'
-
-			# Collect ALL possible tvg-id aliases (set by enricher)
-			ids_to_write = set()
-			primary = (ch.get('tvg_id') or '').strip()
-			if primary:
-				ids_to_write.add(primary)
-			aliases = ch.get('_tvg_id_aliases') or set()
-			if aliases:
-				ids_to_write.update(aliases)
-
-			if not ids_to_write:
-				continue  # no tvg-id, no EPG mapping possible
-
-			for tvg in ids_to_write:
-				if not tvg:
-					continue
-				tvg_esc = (tvg.replace('&', '&amp;').replace('<', '&lt;')
-				              .replace('>', '&gt;').replace('"', '&quot;'))
-				lines.append('  <channel id="{}">{}</channel>'.format(
-					tvg_esc, ref_no_url))
-				total_entries += 1
-		lines.append('</channels>')
-		_atomic_write(channels_path, '\n'.join(lines) + '\n')
-		self.log('[M3U] channels.xml: %d entries written (multi-alias)' %
-		         total_entries)
-
-		# --- sources.xml ---
-		sources_path = os.path.join(epgimport_dir, sources_file)
-		desc = self.s.get('epg_source_description') or 'M3U IPTV EPG'
-		src_url = self.s.get('epg_source_url')
-		src_lines = [
-			'<sources>',
-			'  <sourcecat sourcecatname="M3U IPTV">',
-			'    <source type="gen_xmltv" channels="{}">'.format(channels_file),
-			'      <description>{}</description>'.format(desc),
-			'      <url><![CDATA[{}]]></url>'.format(src_url),
-			'    </source>',
-			'  </sourcecat>',
-			'</sources>',
-		]
-		_atomic_write(sources_path, '\n'.join(src_lines) + '\n')
-
-		self.log('[M3U] Wrote epgimport files: %s, %s' %
-		         (channels_path, sources_path))
-		return (channels_path, sources_path)
+	#
+	# write_epgimport_files() bola odstránená (audit). m3u_manager.py
+	# v `settings` natvrdo nastavoval `'write_epgimport': False` od 0.48g
+	# (komentár: "Generation epgimport XML súborov je duplicitná s direct
+	# EPG injection ktorý robí to isté efektívnejšie"). Direct injection
+	# cez m3u_epg_injector + Enigma2 eEPGCache.importEvent() XMLTV programmy
+	# do EPG cache bez nutnosti externého epgimport pluginu.
+	#
+	# Pre legacy inštalácie ktoré majú /etc/epgimport/<prefix>.channels.xml
+	# alebo .sources.xml z minulých verzií zostáva `cleanup_m3u_bouquet()`
+	# nižšie — vie ich zmazať pri "Remove M3U bouquet" akcii v UI.
 
 	# ------------------ One-shot orchestration ------------------
 
 	def run(self):
-		"""Convenience: write bouquet + picons + epgimport in one call."""
+		"""Convenience: write bouquet + picons + reload Enigma2 in one call."""
 		self.write_bouquet()
 		try:
 			self.download_picons()
 		except Exception as e:
 			self.log('[M3U] Picon stage failed: %s' % e)
-		try:
-			self.write_epgimport_files()
-		except Exception as e:
-			self.log('[M3U] EPG import stage failed: %s' % e)
 
 		# Force Enigma2 to re-read bouquet files from disk so that the
 		# new #NAME and channel list show up immediately without restart.
@@ -823,13 +750,9 @@ if __name__ == '__main__':
 		'add_category_markers': True,
 		'bouquet_dir': '/tmp/test_bouquet',
 		'picon_dir': '/tmp/test_picons',
-		'epgimport_dir': '/tmp/test_epgimport',
 		'download_picons': False,  # set True to actually fetch logos
-		'write_epgimport': True,
-		'epg_source_url': epg_url,
 	}
-	for d in (settings['bouquet_dir'], settings['picon_dir'],
-	          settings['epgimport_dir']):
+	for d in (settings['bouquet_dir'], settings['picon_dir']):
 		if not os.path.exists(d):
 			os.makedirs(d)
 

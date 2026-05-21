@@ -804,13 +804,23 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 				self._log("Removed radio bouquet(s) from bouquets.tv: %s" % (", ".join(bouquet_filenames)))
 
 	def _fix_radio_bouquet_filenames(self):
+		# FIX 0.58.5 (audit, Juraj): pridaný entry/exit logging a count tracking
+		# pre diagnostiku. Predtým funkcia bežala silently a keď zlyhala (napr.
+		# rename race, IOError, alebo permission issue na /etc/enigma2) výnimka
+		# bola zachytená vyššie v `_post()` cez `try/except: pass` čo viedlo
+		# k tomu že userbouquet.tvheadend_radio.tv zostal v bouquets.tv namiesto
+		# byť presunutý do bouquets.radio. Bez logu sa to nedalo identifikovať.
 		if not self.get_setting("enable_userbouquet_radio"):
+			self._log("_fix_radio_bouquet_filenames: skipped (enable_userbouquet_radio=False)")
 			return
+
+		self._log("_fix_radio_bouquet_filenames: started")
 
 		base = "/etc/enigma2"
 		try:
 			files = os.listdir(base)
-		except Exception:
+		except Exception as e:
+			self._log("_fix_radio_bouquet_filenames: listdir(%s) failed: %s" % (base, e))
 			return
 
 		remove_from_tv = []
@@ -836,15 +846,16 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 				if os.path.isfile(dst):
 					try:
 						os.remove(src)
-					except Exception:
-						pass
+					except Exception as e:
+						self._log("Radio bouquet: cannot remove duplicate %s: %s" % (src, e))
 					renamed_to.append(dst_fn)
 					continue
 
 				os.rename(src, dst)
 				renamed_to.append(dst_fn)
 				self._log("Radio bouquet rename: %s -> %s" % (fn, dst_fn))
-			except Exception:
+			except Exception as e:
+				self._log("Radio bouquet rename FAILED: %s -> %s: %s" % (fn, dst_fn, e))
 				continue
 
 		br = os.path.join(base, "bouquets.radio")
@@ -871,6 +882,8 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 		target = "userbouquet.tvheadend_radio.radio"
 		if os.path.isfile(os.path.join(base, target)):
 			self._ensure_bouquets_radio_has(target)
+			self._log("_fix_radio_bouquet_filenames: done (target %s already exists, renamed=%d)"
+			          % (target, len(renamed_to)))
 			return
 
 		try:
@@ -880,16 +893,139 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 					continue
 				if "tvheadend" in lfn and ("radio" in lfn or "radia" in lfn or "rádio" in lfn or "rádia" in lfn):
 					self._ensure_bouquets_radio_has(fn)
+					self._log("_fix_radio_bouquet_filenames: done (renamed=%d, found existing radio bouquet=%s)"
+					          % (len(renamed_to), fn))
 					return
-		except Exception:
-			pass
+		except Exception as e:
+			self._log("_fix_radio_bouquet_filenames: scan for existing .radio failed: %s" % e)
 
 		if renamed_to:
 			self._ensure_bouquets_radio_has(renamed_to[0])
 
+		self._log("_fix_radio_bouquet_filenames: done (renamed=%d files, remove_from_tv=%d)"
+		          % (len(renamed_to), len(remove_from_tv)))
+
 	# Framework EPG injection: BouquetXmlEpgGenerator.refresh_xmlepg()
 	# automaticky volá EnigmaEpgGenerator.run() → iteruje cez
 	# get_xmlepg_channels() + get_epg() → eEPGCache.importEvent().
+
+	def refresh_bouquet(self, *args, **kwargs):
+		# FIX 0.58.5 (audit, Juraj): override framework `refresh_bouquet()`.
+		# Toto je kľúčový hook ktorý sa volá pri:
+		#   1. plugin init (po dokončení dependency resolve)
+		#   2. settings_changed → bouquet_settings_changed → __bouquet_refreshed
+		#      (TJ. keď user toggle-uje `enable_userbouquet` alebo
+		#      `enable_userbouquet_radio` v UI cez "Auto-generovanie")
+		#   3. periodic refresh cez `bouquet_refresh_interval`
+		#
+		# Predtým plugin override-oval iba `refresh_userbouquet_start()`,
+		# ktorá sa volá iba pri (1) plus manuálnom export. Pri (2) toggle
+		# path framework cestou `bouquet_settings_changed → refresh_bouquet`
+		# vygeneroval userbouquet.tvheadend_radio.tv ale _fix_radio_bouquet_
+		# filenames sa nikdy nezavolala → súbor zostal v .tv ext a v
+		# bouquets.tv namiesto byť presunutý do bouquets.radio.
+		#
+		# Tento override volá parent refresh_bouquet a po jeho dobehnutí
+		# zavolá _fix_radio_bouquet_filenames synchrónne. Framework metóda
+		# je synchronous (nie async/threaded), takže keď return-uje,
+		# userbouquet súbory sú už na disku.
+		#
+		# FIX 0.58.6 (audit, Juraj): Pri vypnutí `enable_userbouquet` framework
+		# volá `userbouquet_remove()` ktorý hľadá súbor `userbouquet.<prefix>.tv`
+		# (lebo `BouquetGeneratorTemplate.__init__` natvrdo nastavil
+		# `userbouquet_file_name = "userbouquet.%s.tv" % self.prefix`). Náš
+		# `_fix_radio_bouquet_filenames` ho ale predtým premenoval na
+		# `userbouquet.tvheadend_radio.radio` — framework `.tv` súbor nenájde,
+		# takže `Tvheadend Radio` zostane visieť v `bouquets.radio`. Cleanup
+		# orphaned `.radio` súborov tu po parent calle ak je setting vypnutý.
+		enabled_before = bool(self.get_setting('enable_userbouquet'))
+
+		self._log("refresh_bouquet: starting (framework hook, enabled=%s)" % enabled_before)
+		try:
+			ret = BouquetXmlEpgGenerator.refresh_bouquet(self, *args, **kwargs)
+		except Exception as e:
+			self._log("refresh_bouquet: parent call failed: %s" % e)
+			ret = None
+
+		if enabled_before:
+			# Enable path: rename .tv -> .radio + presun referencií
+			try:
+				self._fix_radio_bouquet_filenames()
+			except Exception as e:
+				self._log("refresh_bouquet: _fix_radio_bouquet_filenames raised: %s" % e)
+		else:
+			# Disable path: framework nevie zmazať .radio súbory (hľadá .tv).
+			# Doupratujeme orphaned tvheadend .radio súbory + ich referencie
+			# v bouquets.radio.
+			try:
+				self._cleanup_orphaned_radio_bouquets()
+			except Exception as e:
+				self._log("refresh_bouquet: _cleanup_orphaned_radio_bouquets raised: %s" % e)
+
+		# Reload Enigma2 bouquet cache aby UI ihneď reflektoval rename
+		# (.tv -> .radio) a presun referencií medzi bouquets.tv / .radio.
+		try:
+			from enigma import eDVBDB
+			eDVBDB.getInstance().reloadBouquets()
+			self._log("refresh_bouquet: eDVBDB.reloadBouquets() OK")
+		except ImportError:
+			pass
+		except Exception as e:
+			self._log("refresh_bouquet: eDVBDB.reloadBouquets() failed: %s" % e)
+
+		return ret
+
+	def _cleanup_orphaned_radio_bouquets(self):
+		# FIX 0.58.6 (audit, Juraj): pri vypnutí enable_userbouquet framework
+		# zmaže iba `userbouquet.<prefix>.tv` súbory (podľa `userbouquet_file_name`).
+		# Tvheadend Radio userbouquet má extension `.radio` (po
+		# _fix_radio_bouquet_filenames rename), takže framework ho nezachytí.
+		# Táto metóda doupracuje: zmaže orphaned .radio súbory pre prefix
+		# 'tvheadend' a odstráni ich referencie z bouquets.radio.
+		base = "/etc/enigma2"
+		try:
+			files = os.listdir(base)
+		except Exception as e:
+			self._log("_cleanup_orphaned_radio_bouquets: listdir failed: %s" % e)
+			return
+
+		removed_files = []
+		for fn in files:
+			lfn = fn.lower()
+			if not fn.startswith("userbouquet."):
+				continue
+			if not fn.endswith(".radio"):
+				continue
+			# Bezpečnostná kontrola: maž iba tvheadend bouquety, nie napr.
+			# m3u_iptv.radio (z e2m3u2bouquet) alebo favourites.radio.
+			if "tvheadend" not in lfn:
+				continue
+
+			path = os.path.join(base, fn)
+			try:
+				os.remove(path)
+				removed_files.append(fn)
+				self._log("_cleanup_orphaned_radio_bouquets: removed %s" % fn)
+			except Exception as e:
+				self._log("_cleanup_orphaned_radio_bouquets: cannot remove %s: %s" % (fn, e))
+
+		# Odstrániť referencie z bouquets.radio
+		if removed_files:
+			br = os.path.join(base, "bouquets.radio")
+			lines = self._read_lines(br)
+			if lines:
+				def _hit(line):
+					for f in removed_files:
+						if ('FROM BOUQUET "%s"' % f) in line:
+							return True
+					return False
+				new_lines = [ln for ln in lines if not _hit(ln)]
+				if new_lines != lines:
+					if self._write_lines(br, new_lines):
+						self._log("_cleanup_orphaned_radio_bouquets: patched bouquets.radio (removed %d refs)"
+						          % (len(lines) - len(new_lines)))
+
+		self._log("_cleanup_orphaned_radio_bouquets: done (removed %d files)" % len(removed_files))
 
 
 	def refresh_userbouquet_start(self, *args, **kwargs):
@@ -899,6 +1035,15 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 			ret = None
 
 		def _post():
+			# FIX 0.58.5 (audit, Juraj): entry log pre diagnostiku.
+			# Bez tohto logu sa nedalo zistiť či timer thread vôbec spustil
+			# callback po refresh_userbouquet_start. Ak `enable_userbouquet_radio`
+			# bol True pri starte refresh-u ale userbouquet.tvheadend_radio
+			# stále mal .tv extension, znamenalo to že _post() sa buď
+			# nevolal (timer thread crash), alebo bol debouncom preskočený,
+			# alebo _fix_radio_bouquet_filenames zlyhalo silentne.
+			self._log("refresh_userbouquet_start._post: starting (1s after refresh)")
+
 			# FIX 0.48c: debounce celého _post() callbacku.
 			# Framework volá refresh_userbouquet_start raz pre channel_type='tv'
 			# a raz pre 'radio', takže _post() je v rade 2× ~1s od seba.
@@ -917,10 +1062,16 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 						return
 					_LAST_POST_CALLBACK_TS[0] = now_ts
 
+			# FIX 0.58.5 (audit, Juraj): log výnimky pred swallow-om. Pred
+			# audit-om bol blok `try: _fix_radio(); except: pass` ktorý
+			# silentne pohltil každú chybu — výsledok bol že keď
+			# _fix_radio_bouquet_filenames zlyhala (z akéhokoľvek dôvodu),
+			# userbouquet.tvheadend_radio.tv zostal v bouquets.tv namiesto
+			# byť presunutý do bouquets.radio, ale nikde sa to nedalo zistiť.
 			try:
 				self._fix_radio_bouquet_filenames()
-			except Exception:
-				pass
+			except Exception as e:
+				self._log("_fix_radio_bouquet_filenames raised: %s" % e)
 			# Počkaj kým picon worker dobeží (max 120 sekúnd)
 			# Používame threading.Event namiesto sleep slučky – efektívnejšie
 			# FIX 0.48c: event sa teraz správne čistí na začiatku worker-a

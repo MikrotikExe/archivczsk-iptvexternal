@@ -56,6 +56,14 @@ class E2M3U2BouquetContentProvider(CommonContentProvider):
 		enable_userbouquet ON. Framework volá login() pri každom otvorení
 		pluginu — pri prvom otvorení s vyplnenou URL sa bouquet vygeneruje
 		automaticky.
+
+		FIX 0.1.2 (audit, Juraj): Pridaný poll-based cleanup check. Framework
+		`add_setting_change_notifier` cesta (`_on_bouquet_settings_changed`)
+		v aktuálnej verzii tools_archivczsk nefunguje spoľahlivo — callback
+		sa pri toggle off `enable_userbouquet` proste nezavolá (overené v
+		logu - žiadne "bouquet settings changed" entry pri vypnutí setting-u).
+		Preto pri každom login skontrolujeme stav: ak je setting OFF a
+		generated súbory ešte sú na disku, spustí sa cleanup.
 		"""
 		# Disneyplus-style: required settings check + info dialog
 		if not (self.get_setting('m3u_url') or '').strip():
@@ -65,16 +73,44 @@ class E2M3U2BouquetContentProvider(CommonContentProvider):
 				    "in the addon settings"), noexit=True)
 			return False
 
-		# Plus auto-refresh ak je enable_userbouquet ON
 		mgr = self._maybe_init_m3u_manager()
-		if mgr is not None and mgr.is_enabled() and mgr.can_run():
-			try:
+		if mgr is None:
+			return True
+
+		try:
+			if mgr.is_enabled() and mgr.can_run():
+				# Setting ON path: refresh ak treba (cooldown stamp si rieši
+				# manager interne)
 				mgr.refresh_async()
-			except Exception as e:
-				try:
-					self.log_error('[m3u] auto-refresh on login failed: %s' % e)
-				except Exception:
-					pass
+			else:
+				# Setting OFF path (poll-based detekcia toggle off):
+				# ak sú generated súbory ešte na disku, vyčisti.
+				import os
+				bouquet_dir = (self.get_setting('m3u_bouquet_dir')
+				               or '/etc/enigma2')
+				ub_tv = os.path.join(bouquet_dir,
+				                     'userbouquet.%s.tv' % M3U_BOUQUET_PREFIX)
+				ub_radio = os.path.join(bouquet_dir,
+				                        'userbouquet.%s.radio' % M3U_BOUQUET_PREFIX)
+				if os.path.isfile(ub_tv) or os.path.isfile(ub_radio):
+					self.log_info('[m3u] login: enable_userbouquet=OFF detected '
+					              '+ generated files present — auto-cleanup')
+					mgr.cleanup()
+					# Reload Enigma2 bouquet cache aby zmeny boli viditeľné
+					# v UI ihneď bez reštartu
+					try:
+						from enigma import eDVBDB
+						eDVBDB.getInstance().reloadBouquets()
+						self.log_info('[m3u] login: eDVBDB.reloadBouquets() OK')
+					except ImportError:
+						pass
+					except Exception as e:
+						self.log_info('[m3u] login: reloadBouquets failed: %s' % e)
+		except Exception as e:
+			try:
+				self.log_error('[m3u] login: auto-refresh/cleanup failed: %s' % e)
+			except Exception:
+				pass
 		return True
 
 	def root(self):
@@ -390,7 +426,17 @@ class E2M3U2BouquetContentProvider(CommonContentProvider):
 		Plus spustí background refresh aby sa bouquet regeneroval s novými
 		hodnotami (napr. nový player_name → nový service_type → nové
 		picon filenames). M3URefreshManager interne handluje cooldown
-		stamp ak refresh prebehol nedávno."""
+		stamp ak refresh prebehol nedávno.
+
+		FIX 0.1.2 (audit, Juraj): Pridaná detekcia vypnutia `enable_userbouquet`
+		— framework callback sa volá pri akejkoľvek zmene sledovaných
+		settingov, ale predtým plugin reagoval iba na refresh path
+		(`if mgr.is_enabled() ...`). Pri prechode True→False nedošlo k
+		žiadnej akcii, takže userbouquet.m3u_iptv.tv aj .radio zostali
+		visieť v bouquets.tv / bouquets.radio. Teraz: ak je setting OFF
+		a generated súbory ešte existujú, spustí sa `mgr.cleanup()` ktorý
+		ich zmaže + odstráni referencie z master bouquet súborov.
+		"""
 		try:
 			self.log_info('[m3u] bouquet settings changed — triggering refresh')
 		except Exception:
@@ -400,12 +446,36 @@ class E2M3U2BouquetContentProvider(CommonContentProvider):
 		if mgr is None:
 			return
 		try:
-			# Skús async refresh — ak je manager v is_enabled() OFF, no-op
 			if mgr.is_enabled() and mgr.can_run():
+				# Setting ON path: refresh bouquet s novými hodnotami
 				mgr.refresh_async()
+			else:
+				# Setting OFF path (enable_userbouquet toggle-d off):
+				# vyčisti orphaned bouquet súbory ak ešte sú na disku.
+				# Idempotent — ak už nič nie je, cleanup_m3u_bouquet vráti
+				# nulové štatistiky.
+				import os
+				bouquet_dir = (self.get_setting('m3u_bouquet_dir')
+				               or '/etc/enigma2')
+				ub_tv = os.path.join(bouquet_dir,
+				                     'userbouquet.%s.tv' % M3U_BOUQUET_PREFIX)
+				ub_radio = os.path.join(bouquet_dir,
+				                        'userbouquet.%s.radio' % M3U_BOUQUET_PREFIX)
+				if os.path.isfile(ub_tv) or os.path.isfile(ub_radio):
+					self.log_info('[m3u] enable_userbouquet=OFF detected '
+					              '+ generated files present — auto-cleanup')
+					mgr.cleanup()
+					# Reload Enigma2 bouquet cache aby zmizli z UI hneď
+					try:
+						from enigma import eDVBDB
+						eDVBDB.getInstance().reloadBouquets()
+					except ImportError:
+						pass
+					except Exception as e:
+						self.log_info('[m3u] cleanup reloadBouquets failed: %s' % e)
 		except Exception as e:
 			try:
-				self.log_error('[m3u] settings-change refresh failed: %s' % e)
+				self.log_error('[m3u] settings-change handler failed: %s' % e)
 			except Exception:
 				pass
 

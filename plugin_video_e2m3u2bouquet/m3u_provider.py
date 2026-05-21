@@ -33,11 +33,6 @@ except ImportError:
 	from urllib2 import Request, urlopen
 	from urlparse import urlparse, parse_qs
 
-try:
-	from xml.etree.cElementTree import iterparse, fromstring
-except ImportError:
-	from xml.etree.ElementTree import iterparse, fromstring
-
 
 # -------------------------------------------------
 # Regex helpers for M3U parsing
@@ -115,7 +110,6 @@ class M3UProvider(object):
 		# Parsed state
 		self._channels = []          # list of dicts
 		self._categories = []        # ordered unique categories
-		self._epg_channel_ids = set()
 		self._raw_m3u_bytes = b''
 		self._raw_epg_bytes = b''
 
@@ -168,10 +162,13 @@ class M3UProvider(object):
 				self.log('[M3U] Fetching EPG: %s' % self.epg_url)
 				raw = self._http_get_bytes(self.epg_url)
 				self._raw_epg_bytes = raw
-				xml_bytes = _maybe_decompress(raw, self.epg_url)
-				self._parse_xmltv_channels(xml_bytes)
-				self.log('[M3U] EPG has %d channel IDs (%.1fs)' %
-				         (len(self._epg_channel_ids), time.time() - t1))
+				# Validation pre diagnostiku — ak je odpoveď korumpovaná,
+				# _maybe_decompress hodí exception ktorú catch-neme nižšie
+				# a zalogujeme. _raw_epg_bytes ostáva nastavený (m3u_manager
+				# si decompress robí sám pri injection).
+				_maybe_decompress(raw, self.epg_url)
+				self.log('[M3U] EPG fetched OK, %d bytes (%.1fs)' %
+				         (len(raw), time.time() - t1))
 			except Exception as e:
 				self.log('[M3U] EPG fetch/parse failed: %s' % e)
 
@@ -253,35 +250,6 @@ class M3UProvider(object):
 
 				self._channels.append(current)
 				current = None
-
-	def _parse_xmltv_channels(self, xml_bytes):
-		"""Stream-parse XMLTV to collect channel IDs only (memory friendly)."""
-		self._epg_channel_ids = set()
-		if not xml_bytes:
-			return
-
-		try:
-			# iterparse over BytesIO so we don't load full tree.
-			# IMPORTANT: cElementTree on Py2 rejects unicode event names
-			# with "invalid event tuple" - unicode_literals makes literals
-			# unicode in Py2. Convert event name to native str.
-			ctx = iterparse(io.BytesIO(xml_bytes), events=(str('start'),))
-			for event, elem in ctx:
-				if elem.tag == 'channel':
-					cid = elem.get('id')
-					if cid:
-						self._epg_channel_ids.add(cid)
-				elif elem.tag == 'programme':
-					# all channels seen by now in well-formed XMLTV
-					break
-		except Exception as e:
-			# Fallback: full parse, but only collect <channel> tags
-			self.log('[M3U] iterparse failed, falling back to fromstring: %s' % e)
-			root = fromstring(xml_bytes)
-			for ch in root.findall('channel'):
-				cid = ch.get('id')
-				if cid:
-					self._epg_channel_ids.add(cid)
 
 	# ------------------ Public accessor API ------------------
 

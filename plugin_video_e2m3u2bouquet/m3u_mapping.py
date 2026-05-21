@@ -3,7 +3,7 @@
 M3UMappingOverride - load and apply an e2m3u2bouquet-compatible
 mapping XML to reorder, rename, disable categories and channels.
 
-Example mapping XML (compatible with e2m3u2bouquet):
+Example mapping XML:
 
   <mapping>
     <categories>
@@ -11,12 +11,16 @@ Example mapping XML (compatible with e2m3u2bouquet):
       <category name="Adult" enabled="false"/>
     </categories>
     <channels>
-      <channel name="Markiza HD" nameOverride="" tvg-id="markiza.sk"
-               enabled="true" category="None"
-               serviceRef="1:0:1:1:08cf:d919:0:0:0:0"
-               clearStreamUrl="false"/>
+      <channel name="Markiza HD" nameOverride="Markíza"
+               enabled="true" category="News"
+               categoryOverride="Slovak"/>
     </channels>
   </mapping>
+
+Supported channel attributes: name, nameOverride, enabled, category,
+categoryOverride. Other e2m3u2bouquet attributes (tvg-id, serviceRef,
+clearStreamUrl) boli odstránené v audite — ich efekty sa nikdy nečítali
+v bouquet writeri, takže boli reálne no-op.
 
 The file is searched in:
   /etc/enigma2/m3u-sort-override.xml    (custom path also allowed)
@@ -77,12 +81,9 @@ class M3UMappingOverride(object):
 			rule = {
 				'name': ch.get('name', '').strip(),
 				'name_override': ch.get('nameOverride', '').strip(),
-				'tvg_id_override': ch.get('tvg-id', '').strip(),
 				'enabled': ch.get('enabled', 'true').lower() != 'false',
 				'category': ch.get('category', '').strip(),
 				'category_override': ch.get('categoryOverride', '').strip(),
-				'service_ref_override': ch.get('serviceRef', '').strip(),
-				'clear_stream_url': ch.get('clearStreamUrl', 'false').lower() == 'true',
 			}
 			if rule['name']:
 				key = (rule['name'], rule['category'])
@@ -160,12 +161,6 @@ class M3UMappingOverride(object):
 			channel['name'] = rule['name_override']
 		if rule['category_override']:
 			channel['group'] = rule['category_override']
-		if rule['service_ref_override']:
-			# Forced service ref - bouquet writer can prepend ':URL:Name' if needed
-			channel['_forced_service_ref'] = rule['service_ref_override']
-		if rule['clear_stream_url']:
-			# Channel will be written as marker only (no URL part)
-			channel['_clear_stream_url'] = True
 
 		return True
 

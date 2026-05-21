@@ -387,11 +387,10 @@ def _maybe_cleanup_poster_cache():
 				f.write(str(now))
 		except Exception:
 			pass
-		if removed:
-			try:
-				self.log_info('[plugin.tvheadend]poster cache cleanup: removed %d stale files' % removed)
-			except Exception:
-				pass
+		# Pôvodne tu bol log call cez `self.log_info(...)`, ale táto funkcia
+		# je module-level (nie metóda triedy), takže `self` neexistovalo a
+		# riadok vždy hodil NameError zachytený try/except — log sa nikdy
+		# nezapísal. Cleanup beží správne, len bez log oznámenia.
 	except Exception:
 		pass
 
@@ -455,7 +454,6 @@ from .classifier import (
 	_strip_accents_lower,
 	_strip_tech_markers,
 	# Klasifikačné funkcie
-	_movie_subgenre,
 	_get_classified_dvr,
 	_invalidate_classify_cache,
 )

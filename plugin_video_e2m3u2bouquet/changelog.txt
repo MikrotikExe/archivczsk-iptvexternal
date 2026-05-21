@@ -1,10 +1,36 @@
 E2m3u2bouquet plugin pre archivCZSK
-Verzia 0.1.3 (20.5.2026)
+Verzia 0.2.0 (21.5.2026)
 ================================================================
 
 Konvertor IPTV M3U playlistu do Enigma2 bouquetu s XMLTV EPG
 injekciou. Automaticky vygeneruje userbouquet z akéhokoľvek
 M3U zdroja.
+
+
+NOVINKY VO VERZII 0.2.0
+----------------------------------------------------------------
+
+  - Opravené: po vypnutí automatického exportu zoznamu kanálov
+    do userbouquetu zostával IPTV M3U bouquet visieť v zozname
+    bouquetov (TV aj Radio). Teraz sa pri ďalšom otvorení
+    pluginu súbory automaticky zmažú a zmiznú referencie
+    z master bouquet súborov.
+
+  - Po vypnutí automatického exportu sa zmena prejaví
+    najneskôr pri ďalšom otvorení pluginu cez ArchivCZSK menu
+    — bez potreby reštartu Enigma2 alebo manuálneho čistenia
+    súborov.
+
+  - Cleanup interného kódu: odstránených cca 117 riadkov
+    mŕtvych funkcií a nepoužitých nastavení ktoré boli
+    pozostatkom z prechodu na nový spôsob vkladania EPG
+    do Enigma2 (priamy zápis namiesto externého epgimport
+    pluginu). Žiadny vplyv na funkcionalitu, kód je teraz
+    prehľadnejší.
+
+  - Vylepšená diagnostika v archivCZSK logu pre situácie keď
+    user vypne export — viditeľný jasný záznam o tom že
+    cleanup prebehol.
 
 
 NOVINKY VO VERZII 0.1.3
