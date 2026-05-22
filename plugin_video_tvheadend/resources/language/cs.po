@@ -804,13 +804,6 @@ msgstr "Datový adresář doplňku"
 msgid "ArchivCZSK log"
 msgstr "ArchivCZSK log"
 
-msgid ""
-"✗ Tvheadend server not configured. Open Settings to fill in host, username, "
-"password."
-msgstr ""
-"✗ Tvheadend server není nastaven. Otevřete Nastavení a zadejte host, jméno, "
-"heslo."
-
 msgid "TVH not configured"
 msgstr "TVH není nastaven"
 
