@@ -1,5 +1,5 @@
 Tvheadend plugin pre archivCZSK
-Verzia 0.59.0 (21.5.2026)
+Verzia 0.60.0 (22.5.2026)
 ================================================================
 
 Klient pre Tvheadend server na sledovanie živej TV, rádia
@@ -51,6 +51,56 @@ Watchdog:
   - Automatické sledovanie offline → online prechodu TVH servera
   - Pri detekcii online stavu spustí obnovu bouquetu a picons
   - Netreba manuálne otvoriť plugin po reštarte TVH servera
+
+
+NOVINKY VO VERZII 0.60.0
+----------------------------------------------------------------
+
+Táto verzia prináša kompletné vyriešenie zobrazovania piconov
+(loga kanálov) pri Tvheadend kanáloch a niekoľko súvisiacich
+vylepšení obnovy bouquetu.
+
+Picony:
+
+  - Picony sa teraz správne zobrazujú pri Tvheadend kanáloch —
+    rovnako ako pri IPTV M3U doplnku. Predchádzajúce verzie
+    ukladali picon súbory pod nesprávnym menom (nesúlad typu
+    služby aj identifikátora kanálu), takže Enigma2 ich pri
+    kanáloch nenašla, hoci boli stiahnuté na disku. Picony sa
+    teraz ukladajú pod menom ktoré presne zodpovedá kanálu
+    v zozname.
+
+  - Picony naskočia ihneď po obnovení bouquetu, bez nutnosti
+    reštartu grafického rozhrania. Akcie v nastaveniach vykonajú
+    rovnaké obnovenie service listu ako pri reštarte.
+
+  - Pri použití kategórií (kanál môže patriť do viacerých
+    kategórií naraz) sa logo priradí ku správnemu kanálu
+    spoľahlivo.
+
+  - Nová akcia v nastaveniach: "Vynútiť opätovné stiahnutie
+    všetkých piconov" — zmaže staré picony Tvheadend kanálov
+    a stiahne ich nanovo. Užitočné keď sa logo kanálu na serveri
+    zmení. Maže len picony Tvheadend kanálov; ostatné (napr.
+    IPTV M3U) ostávajú nedotknuté.
+
+Obnova bouquetu:
+
+  - Akcia "Obnoviť TVH bouquet + XML EPG" je teraz plná obnova:
+    pred generovaním zmaže starý zoznam kanálov z cache aj staré
+    bouquet súbory a natiahne čerstvé dáta zo servera. Vyrieši to
+    prípad keď sa kanály na serveri zmenili (pribudol/ubudol
+    kanál, zmena poradia).
+
+  - Opravené zdvojené kanály v zozname. Keď prebehli dve obnovenia
+    súčasne (napr. automatické + manuálne, alebo rýchle
+    dvojkliknutie), zoznam kanálov sa mohol zdvojiť. Načítanie
+    kanálov je teraz odolné voči súbehu a obsahuje ochranu proti
+    duplikátom — každý kanál sa v zozname objaví práve raz.
+
+  - Manuálne akcie obnovy a sťahovania piconov bežia na pozadí,
+    takže menu počas operácie nezamrzne. Priebeh je viditeľný
+    v archivCZSK logu.
 
 
 NOVINKY VO VERZII 0.59.0

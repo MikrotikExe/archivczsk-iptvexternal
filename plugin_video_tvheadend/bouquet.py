@@ -89,6 +89,15 @@ _POST_CALLBACK_DEBOUNCE_SEC = 30
 #
 # Patch je idempotent (sentinel flag na triede) a aplikuje sa raz pri
 # prvom _TvhBouquetGenerator init-e per session.
+#
+# POZNÁMKA k vzťahu _patched_dp ↔ _remap_picons_to_bouquet (0.60.0):
+# _patched_dp rieši AUTH + integráciu s framework picon flow (framework
+# ho volá počas generovania bouquetu). _remap_picons_to_bouquet rieši
+# FINÁLNE SID-presné umiestnenie picon súborov (meno = service ref
+# z userbouquetu). Obe sú potrebné: bez _patched_dp framework download
+# zlyhá na 401; bez _remap by picony mali nesprávny SID a Enigma2 by
+# ich nezobrazila. _remap beží po _patched_dp a uloží picony pod
+# správnym menom.
 def _install_picon_download_patch(cp):
 	"""Monkey-patch framework BouquetGeneratorTemplate.download_picons.
 
@@ -99,7 +108,6 @@ def _install_picon_download_patch(cp):
 	if getattr(BGT, '_tvh_dp_patched', False):
 		return
 
-	_original_dp = BGT.download_picons
 	_cp_ref = cp
 
 	def _patched_dp(picons):
@@ -180,11 +188,26 @@ def _install_picon_download_patch(cp):
 		errs_other = 0
 		exceptions = 0
 		skipped_exists = 0
+
+		def _picon_filename(ref):
+			# FIX 0.59.2 (audit, Juraj): Enigma2 pri picon lookupe VŽDY
+			# normalizuje service type (prvé pole service ref) na "1" — pre
+			# všetky streamované typy (1/4097/5001/5002/...). Framework ale
+			# generuje _ref s reálnym player_id (napr. "5002_0_1_..."), takže
+			# picon súbor sa uložil ako "5002_0_1_...png" a Enigma2 ho pri
+			# zobrazení (kde hľadá "1_0_1_...png") nikdy nenašiel. Preto
+			# TVH picony "nesedeli" hoci boli na disku.
+			# Oprava: normalizuj prvé pole na "1" pri ukladaní.
+			parts = ref.split('_')
+			if len(parts) >= 1 and parts[0] != '1':
+				parts[0] = '1'
+			return '_'.join(parts)
+
 		try:
 			for _ref, _url in cleaned.items():
 				if not _url:
 					continue
-				_fileout = picon_dir + '/' + _ref + '.png'
+				_fileout = picon_dir + '/' + _picon_filename(_ref) + '.png'
 				if os.path.exists(_fileout):
 					skipped_exists += 1
 					continue
@@ -557,8 +580,13 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 		return h.hexdigest()
 
 	def load_channel_list(self):
-		self._channels = []
-		self._key_to_url = {}
+		# FIX 0.59.7 (audit, Juraj): NEModifikuj self._channels priebežne.
+		# Buduj lokálny list a atomicky ho priraď na konci. Keď bežali dva
+		# refresh thready naraz (auto-refresh + manuálny, alebo dvojklik),
+		# jeden resetoval self._channels=[] zatiaľ čo druhý appendoval →
+		# kanály sa zdvojili (pozorované 587 → 1173 → 1174 v logu, kanály
+		# duplicitné v bouquete). Lokálny build + dedup podľa uuid to rieši:
+		# výsledok je vždy unikátny bez ohľadu na počet súbežných volaní.
 		self._epg_cache = None
 		self._epg_cache_ts = 0   # FIX 0.48c: reset TTL stamp pri reload kanálov
 		self._tagmap = None
@@ -582,11 +610,19 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 
 		channels = sorted(channels, key=_num)
 
+		local_channels = []
+		local_key_to_url = {}
+		seen_uuids = set()
 		fallback_id = 10000
 		for ch in channels:
 			uuid = ch.get('uuid') or ''
 			if not uuid:
 				continue
+			# DEDUP: ak rovnaký uuid už spracovaný, preskoč (ochrana proti
+			# duplikátom z TVH API alebo opakovaného spracovania)
+			if uuid in seen_uuids:
+				continue
+			seen_uuids.add(uuid)
 
 			name = ch.get('name') or uuid
 			number = _num(ch)
@@ -637,8 +673,12 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 				'tags': ch.get('tags') or [],
 			}
 
-			self._channels.append(item)
-			self._key_to_url[uuid] = url
+			local_channels.append(item)
+			local_key_to_url[uuid] = url
+
+		# Atomické priradenie — až teraz, keď je lokálny list kompletný.
+		self._channels = local_channels
+		self._key_to_url = local_key_to_url
 
 		# FIX 0.57.0 debug: koľko channels skončilo s picon URL nastavenou
 		try:
@@ -953,6 +993,17 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 				self._fix_radio_bouquet_filenames()
 			except Exception as e:
 				self._log("refresh_bouquet: _fix_radio_bouquet_filenames raised: %s" % e)
+
+			# FIX 0.59.4 (audit, Juraj): premapuj picony na bouquet service
+			# refs. Framework ukladá picon súbory s menom odvodeným z
+			# interného SID páringu (napr. 5002_0_1_100_...), ktoré NEsedí
+			# s service ref v userbouquete (1_0_1_2_...). Preto Enigma2
+			# picony pri kanáloch nezobrazila. Táto metóda stiahne/premenuje
+			# picony na presné meno = service ref z userbouquetu.
+			try:
+				self._remap_picons_to_bouquet()
+			except Exception as e:
+				self._log("refresh_bouquet: _remap_picons_to_bouquet raised: %s" % e)
 		else:
 			# Disable path: framework nevie zmazať .radio súbory (hľadá .tv).
 			# Doupratujeme orphaned tvheadend .radio súbory + ich referencie
@@ -964,14 +1015,52 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 
 		# Reload Enigma2 bouquet cache aby UI ihneď reflektoval rename
 		# (.tv -> .radio) a presun referencií medzi bouquets.tv / .radio.
+		#
+		# FIX 0.59.6 (audit, Juraj): pridaný PLNÝ reload (reloadServicelist
+		# + OpenWebif servicelistreload), nie len reloadBouquets. Bez
+		# reloadServicelist Enigma2 drží staré picony v pamäti až do
+		# reštartu GUI — preto manuálny toggle+reštart fungoval, ale menu
+		# akcie (ktoré volajú refresh_bouquet) nie. E2m3u2bouquet plugin
+		# (ktorého picony fungujú bez reštartu) volá presne túto sekvenciu:
+		# reloadBouquets → reloadServicelist → OpenWebif servicelistreload.
+		# Replikujeme ju 1:1 aby TVH picony sedeli rovnako bez reštartu.
 		try:
 			from enigma import eDVBDB
-			eDVBDB.getInstance().reloadBouquets()
+			db = eDVBDB.getInstance()
+			db.reloadBouquets()
 			self._log("refresh_bouquet: eDVBDB.reloadBouquets() OK")
+			# KĽÚČOVÉ: reloadServicelist prinúti Enigma2 znova načítať
+			# service list vrátane picon priradenia (bez reštartu GUI).
+			try:
+				db.reloadServicelist()
+				self._log("refresh_bouquet: eDVBDB.reloadServicelist() OK")
+			except Exception as _e:
+				self._log("refresh_bouquet: reloadServicelist failed: %s" % _e)
 		except ImportError:
 			pass
 		except Exception as e:
-			self._log("refresh_bouquet: eDVBDB.reloadBouquets() failed: %s" % e)
+			self._log("refresh_bouquet: eDVBDB reload failed: %s" % e)
+
+		# OpenWebif servicelistreload — dodatočný trigger ktorý vyčistí
+		# aj skin picon cache (M3U plugin to robí rovnako).
+		try:
+			try:
+				from urllib.request import urlopen as _urlopen
+			except ImportError:
+				from urllib2 import urlopen as _urlopen
+			resp = _urlopen('http://127.0.0.1/web/servicelistreload?mode=2',
+			                timeout=5)
+			try:
+				resp.read()
+			finally:
+				try:
+					resp.close()
+				except Exception:
+					pass
+			self._log("refresh_bouquet: OpenWebif servicelistreload OK")
+		except Exception:
+			# OpenWebif nemusí byť spustený — to je v poriadku
+			pass
 
 		return ret
 
@@ -1026,6 +1115,175 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 						          % (len(lines) - len(new_lines)))
 
 		self._log("_cleanup_orphaned_radio_bouquets: done (removed %d files)" % len(removed_files))
+
+
+	def _remap_picons_to_bouquet(self):
+		"""Stiahne/uloží picony pod menom ktoré PRESNE zodpovedá service
+		ref v userbouquete.
+
+		Problém ktorý rieši: framework download_picons ukladá picon súbory
+		s menom odvodeným z interného SID páringu (pozorované 5002_0_1_100_
+		B366_1_7070000), ale userbouquet má service refs 1_0_1_2_B366_1_
+		7070000 (iný service type AJ iný SID). Enigma2 pri zobrazení hľadá
+		picon podľa service ref z bouquetu (s normalizovaným type=1), takže
+		framework-om uložené picony nikdy nenašla.
+
+		Riešenie: pre každý bouquet (TV + radio) paralelne prejdeme:
+		  - #SERVICE riadky zo súboru → presné cieľové picon mená
+		    (service type normalizovaný na 1)
+		  - get_bouquet_channels(ctype) → icon_public_url kanálov
+		Obe sú v identickom poradí (bouquet bol z get_bouquet_channels
+		vygenerovaný), takže i-tý ne-separátor riadok zodpovedá i-tému
+		kanálu — aj pri multi-tag kategóriách kde sa kanál opakuje. Picon
+		stiahneme/uložíme pod presným bouquet menom.
+		"""
+		import os as _os
+
+		picon_dir = '/usr/share/enigma2/picon'
+		if not _os.path.isdir(picon_dir):
+			try:
+				_os.makedirs(picon_dir)
+			except Exception as e:
+				self._log("_remap_picons_to_bouquet: cannot create picon dir: %s" % e)
+				return
+
+		if not self._channels:
+			try:
+				self.load_channel_list()
+			except Exception:
+				pass
+
+		# Páruj bouquet service refs s kanálmi pre TV aj radio.
+		mapping = []  # zoznam (service_ref_picon_name, icon_public_url)
+
+		base = "/etc/enigma2"
+		bouquet_files = [
+			("userbouquet.tvheadend_tv.tv", "tv"),
+			("userbouquet.tvheadend_radio.radio", "radio"),
+			("userbouquet.tvheadend_radio.tv", "radio"),
+		]
+
+		for fn, ctype in bouquet_files:
+			path = _os.path.join(base, fn)
+			if not _os.path.isfile(path):
+				continue
+
+			# FIX 0.59.5 (audit, Juraj): paralelná iterácia. get_bouquet_channels
+			# yielduje kanály v PRESNE rovnakom poradí (vrátane duplikátov v
+			# kategóriách + separátorov) ako boli zapísané do bouquet súboru,
+			# lebo bouquet bol z tejto funkcie vygenerovaný. Takže i-tý
+			# ne-separátor kanál zodpovedá i-tému #SERVICE ne-separátor
+			# riadku. Tým sa eliminuje mismatch z multi-tag kategórií.
+
+			# 1) service refs z bouquet súboru (ne-separátory, v poradí)
+			refs = []
+			try:
+				with open(path, 'r') as f:
+					for line in f:
+						if not line.startswith('#SERVICE'):
+							continue
+						parts = line.split(':')
+						if len(parts) < 11:
+							continue
+						if parts[0] == '#SERVICE 1' and parts[1] == '64':
+							continue
+						stype = parts[0].replace('#SERVICE', '').strip()
+						ref10 = [stype] + parts[1:10]
+						if ref10[0] != '1':
+							ref10[0] = '1'
+						refs.append('_'.join(p.strip() for p in ref10))
+			except Exception as e:
+				self._log("_remap_picons_to_bouquet: read %s failed: %s" % (fn, e))
+				continue
+
+			# 2) icon_public_url z get_bouquet_channels (ne-separátory, v poradí)
+			icons = []
+			try:
+				for item in self.get_bouquet_channels(ctype):
+					if item.get('is_separator'):
+						continue
+					key = item.get('key')
+					icon = ''
+					for ch in self._channels:
+						if (ch.get('key') == key) or (ch.get('uuid') == key):
+							icon = (ch.get('icon_public_url') or '').strip()
+							break
+					icons.append(icon)
+			except Exception as e:
+				self._log("_remap_picons_to_bouquet: get_bouquet_channels(%s) failed: %s" % (ctype, e))
+				continue
+
+			# 3) Páruj i-tý ref s i-tým icon (identické poradie)
+			if len(refs) != len(icons):
+				self._log("_remap_picons_to_bouquet: %s ref/icon mismatch (refs=%d, icons=%d)" % (fn, len(refs), len(icons)))
+			paired = 0
+			for i in range(min(len(refs), len(icons))):
+				if icons[i]:
+					mapping.append((refs[i], icons[i]))
+					paired += 1
+			self._log("_remap_picons_to_bouquet: %s paired %d channels" % (fn, paired))
+
+		if not mapping:
+			self._log("_remap_picons_to_bouquet: nothing to map")
+			return
+
+		# Stiahni/ulož picony pod správnym menom (ak ešte neexistujú)
+		try:
+			http_url_fn = self.cp.tvh.make_icon_http_url
+		except Exception:
+			http_url_fn = None
+
+		written = 0
+		skipped = 0
+		failed = 0
+		try:
+			import requests as _req
+			from requests.auth import HTTPDigestAuth as _DigestAuth
+		except ImportError:
+			self._log("_remap_picons_to_bouquet: requests missing")
+			return
+
+		sess = _req.Session()
+		# Auth: vytiahni z prvého http URL credentials (rovnako ako _patched_dp)
+		auth = None
+		try:
+			from urllib.parse import urlparse as _up
+			if http_url_fn and mapping:
+				probe = http_url_fn(mapping[0][1])
+				if probe:
+					pp = _up(probe)
+					if pp.username:
+						# skús digest (TVH default)
+						auth = _DigestAuth(pp.username, pp.password or '')
+		except Exception:
+			pass
+
+		for ref_name, icon_public_url in mapping:
+			dst = _os.path.join(picon_dir, ref_name + '.png')
+			if _os.path.isfile(dst) and _os.path.getsize(dst) > 0:
+				skipped += 1
+				continue
+			http_url = None
+			try:
+				http_url = http_url_fn(icon_public_url) if http_url_fn else None
+			except Exception:
+				http_url = None
+			if not http_url:
+				continue
+			try:
+				r = sess.get(http_url, auth=auth, timeout=10)
+				if r.status_code == 200 and r.content and len(r.content) > 100:
+					with open(dst, 'wb') as f:
+						f.write(r.content)
+					written += 1
+				else:
+					failed += 1
+			except Exception:
+				failed += 1
+
+		self._log("_remap_picons_to_bouquet: done (written=%d, skipped=%d, "
+		          "failed=%d, total_mapped=%d)"
+		          % (written, skipped, failed, len(mapping)))
 
 
 	def refresh_userbouquet_start(self, *args, **kwargs):

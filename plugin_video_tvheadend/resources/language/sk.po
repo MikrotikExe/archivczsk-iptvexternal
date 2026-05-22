@@ -1,3 +1,4 @@
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: plugin_video_tvheadend\n"
@@ -247,13 +248,11 @@ msgstr "Zadaj prosím aspoň 2 znaky."
 msgid ""
 "Plugin is not configured.\n"
 "\n"
-"Fill in TVH server (host, username, password) OR enable External M3U "
-"playlist in plugin settings (blue 'Nastavenia' button)."
+"Fill in TVH server (host, username, password) OR enable External M3U playlist in plugin settings (blue 'Nastavenia' button)."
 msgstr ""
 "Plugin nie je nakonfigurovaný.\n"
 "\n"
-"Vyplň TVH server (host, meno, heslo) ALEBO zapni External M3U playlist v "
-"nastaveniach pluginu (modré tlačidlo „Nastavenia“)."
+"Vyplň TVH server (host, meno, heslo) ALEBO zapni External M3U playlist v nastaveniach pluginu (modré tlačidlo „Nastavenia“)."
 
 msgid "Plugin not configured"
 msgstr "Plugin nie je nakonfigurovaný"
@@ -302,15 +301,15 @@ msgid "Search archive"
 msgstr "Hľadať v archíve"
 
 msgid ""
-"Search the DVR archive by title or subtitle. Diacritics are ignored — typing "
-"'Na noze' matches 'Na nože'."
+"Search the DVR archive by title or subtitle. Diacritics are ignored — typing"
+" 'Na noze' matches 'Na nože'."
 msgstr ""
 "Vyhľadávanie v DVR archíve podľa názvu alebo podtitulu. Diakritika sa "
 "ignoruje — text 'Na noze' nájde aj 'Na nože'."
 
 msgid ""
-"Search the DVR archive by title or subtitle. Diacritics are ignored — typing "
-"'Na noze' matches 'Na nože'. Previous searches are remembered (up to 10)."
+"Search the DVR archive by title or subtitle. Diacritics are ignored — typing"
+" 'Na noze' matches 'Na nože'. Previous searches are remembered (up to 10)."
 msgstr ""
 "Vyhľadávanie v DVR archíve podľa názvu alebo podtitulu. Diakritika sa "
 "ignoruje — text 'Na noze' nájde aj 'Na nože'. Posledných 10 hľadaní sa "
@@ -425,7 +424,8 @@ msgid "« Back"
 msgstr "« Späť"
 
 msgid ""
-"⚙ Configure TVH credentials or enable External M3U (blue 'Nastavenia' button)"
+"⚙ Configure TVH credentials or enable External M3U (blue 'Nastavenia' "
+"button)"
 msgstr ""
 "⚙ Nastav TVH prihlasovacie údaje alebo zapni External M3U (modré tlačidlo "
 "„Nastavenia“)"
@@ -533,8 +533,8 @@ msgstr "⟳ TVH nedostupný — kliknutím skúsiť znova"
 msgid "🔍 Hľadať v archíve"
 msgstr "🔍 Hľadať v archíve"
 
-# === FIX 0.57.0 (skyjet PR #22 review #15b): plugin i18n — category labels z classifier.py ===
-
+# === FIX 0.57.0 (skyjet PR #22 review #15b): plugin i18n — category labels z
+# classifier.py ===
 msgid "Movies"
 msgstr "Filmy"
 
@@ -757,8 +757,99 @@ msgstr "Kutilstvo / DIY"
 msgid "Recently watched"
 msgstr "Posledné sledované"
 
-msgid "To display content, you must enter M3U playlist URL in the addon settings"
-msgstr "Pre zobrazenie obsahu je potrebné zadať URL M3U playlistu v nastaveniach doplnku"
+msgid ""
+"To display content, you must enter M3U playlist URL in the addon settings"
+msgstr ""
+"Pre zobrazenie obsahu je potrebné zadať URL M3U playlistu v nastaveniach "
+"doplnku"
 
-msgid "To display content, you must enter TVH server (host, username, password) in the addon settings"
-msgstr "Pre zobrazenie obsahu je potrebné zadať TVH server (host, prihlasovacie meno, heslo) v nastaveniach doplnku"
+msgid ""
+"To display content, you must enter TVH server (host, username, password) in "
+"the addon settings"
+msgstr ""
+"Pre zobrazenie obsahu je potrebné zadať TVH server (host, prihlasovacie "
+"meno, heslo) v nastaveniach doplnku"
+
+msgid "Force re-download all TVH picons (delete + fresh)"
+msgstr "Vynútiť opätovné stiahnutie všetkých TVH piconov (zmazať + nanovo)"
+
+msgid "Full picon refresh"
+msgstr "Plný refresh piconov"
+
+msgid ""
+"✓ Full picon refresh started in background (deleting old TVH picons + re-"
+"downloading)"
+msgstr ""
+"✓ Plný refresh piconov spustený na pozadí (mažem staré TVH picony + sťahujem"
+" nanovo)"
+
+msgid "✓ Bouquet refresh + TVH picon download started in background"
+msgstr "✓ Refresh bouquetu + sťahovanie TVH piconov spustené na pozadí"
+
+msgid "Progress: see /tmp/archivCZSK.log (filter '[Tvheadend.picons')"
+msgstr "Priebeh: pozri /tmp/archivCZSK.log (filter '[Tvheadend.picons')"
+
+msgid "✓ 404 picon cache cleared (was: %d entries)"
+msgstr "✓ Cache rozbitých piconov vyčistená (bolo: %d položiek)"
+
+msgid "Next picon refresh will retry all broken icons"
+msgstr "Ďalší refresh piconov skúsi znova všetky rozbité ikony"
+
+msgid "✓ Picon download retry triggered in background"
+msgstr "✓ Opätovné sťahovanie piconov spustené na pozadí"
+
+msgid "Configure TVH credentials in plugin settings"
+msgstr "Nastavte TVH prihlasovacie údaje v nastaveniach doplnku"
+
+msgid "Plugin data dir"
+msgstr "Dátový priečinok doplnku"
+
+msgid "ArchivCZSK log"
+msgstr "ArchivCZSK log"
+
+msgid ""
+"✗ Tvheadend server not configured. Open Settings to fill in host, username, "
+"password."
+msgstr ""
+"✗ Tvheadend server nie je nastavený. Otvorte Nastavenia a zadajte host, "
+"meno, heslo."
+
+msgid "TVH not configured"
+msgstr "TVH nie je nastavený"
+
+msgid "⟳ Failed to load categories — tap to retry"
+msgstr "⟳ Načítanie kategórií zlyhalo — ťuknite pre opakovanie"
+
+msgid "⟳ Failed to load channels — tap to retry"
+msgstr "⟳ Načítanie kanálov zlyhalo — ťuknite pre opakovanie"
+
+msgid "⟳ Failed to load — tap to retry"
+msgstr "⟳ Načítanie zlyhalo — ťuknite pre opakovanie"
+
+msgid "(no episodes found)"
+msgstr "(žiadne epizódy)"
+
+msgid ""
+"✓ Full TVH bouquet refresh started in background (fresh channels + "
+"regenerate)"
+msgstr ""
+"✓ Plný refresh TVH bouquetu spustený na pozadí (čerstvé kanály + "
+"regenerácia)"
+
+msgid "Progress: see /tmp/archivCZSK.log (filter '[Tvheadend.bouquet')"
+msgstr "Priebeh: pozri /tmp/archivCZSK.log (filter '[Tvheadend.bouquet')"
+
+msgid "Progress: see /tmp/archivCZSK.log (filter '[plugin.tvheadend')"
+msgstr "Priebeh: pozri /tmp/archivCZSK.log (filter '[plugin.tvheadend')"
+
+msgid ""
+"✓ TVH picon /tmp cache update started (framework download disabled — enable "
+"'Automatically download picons' in Userbouquet settings)"
+msgstr ""
+"✓ Aktualizácia /tmp cache piconov spustená (sťahovanie cez framework je "
+"vypnuté — zapnite 'Automaticky sťahovať picony' v nastaveniach Userbouquet)"
+
+msgid "✓ TVH picon /tmp cache update started (framework download skipped: %s)"
+msgstr ""
+"✓ Aktualizácia /tmp cache piconov spustená (sťahovanie cez framework "
+"preskočené: %s)"

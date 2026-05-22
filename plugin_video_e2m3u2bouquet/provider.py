@@ -167,9 +167,11 @@ class E2M3U2BouquetContentProvider(CommonContentProvider):
 			             info_labels={'title': self._('M3U Actions')})
 
 			if enable_userbouquet:
+				# FIX 0.2.1 (audit, Juraj): zjednotené s Tvheadend — všetky
+				# ťažké operácie bežia na pozadí, takže UI/menu nezamrzne.
+				# Predtým "Refresh now" (action_m3u_refresh) bežal synchrónne
+				# a blokoval kým sa nedokončil celý refresh + picon download.
 				self.add_dir(self._('Refresh M3U playlist + EPG now'),
-				             cmd=self.action_m3u_refresh)
-				self.add_dir(self._('Refresh M3U playlist (background)'),
 				             cmd=self.action_m3u_refresh_async)
 				self.add_dir(self._('Inject EPG only (no playlist refresh)'),
 				             cmd=self.action_m3u_inject_epg)
@@ -561,22 +563,29 @@ class E2M3U2BouquetContentProvider(CommonContentProvider):
 		raise AddonInfoException(self._('✓ M3U refresh started in background'))
 
 	def action_m3u_inject_epg(self):
+		# FIX 0.2.1 (audit, Juraj): EPG injection beží na pozadí (rovnako ako
+		# Tvheadend), lebo pri veľkom XMLTV (tisíce events) môže trvať
+		# niekoľko sekúnd a blokovala by UI.
 		mgr = self._maybe_init_m3u_manager()
 		if mgr is None or not mgr.is_enabled():
 			raise AddonInfoException(self._(
 				'M3U source is not configured. Open Settings to fill in M3U URL.'))
-		try:
-			result = mgr.inject_epg_only()
-			if result:
-				raise AddonInfoException(self._('✓ EPG injected'))
-			else:
-				raise AddonInfoException(self._(
-					'EPG injection skipped (no events or bouquet missing)'))
-		except AddonInfoException:
-			raise
-		except Exception as e:
-			self.log_error('[m3u] inject EPG failed: %s' % e)
-			raise AddonErrorException(self._('EPG injection failed: {}').format(e))
+
+		import threading as _threading
+
+		def _bg_inject():
+			try:
+				mgr.inject_epg_only()
+			except Exception as e:
+				try:
+					self.log_error('[m3u] inject EPG failed: %s' % e)
+				except Exception:
+					pass
+
+		_t = _threading.Thread(target=_bg_inject, name='M3UInjectEPG')
+		_t.daemon = True
+		_t.start()
+		raise AddonInfoException(self._('✓ EPG injection started in background'))
 
 	def action_m3u_cleanup(self):
 		mgr = self._maybe_init_m3u_manager()
