@@ -53,6 +53,157 @@ try:
 except Exception:
 	HTTPDigestAuth = None
 
+try:
+	from requests.auth import AuthBase as _RequestsAuthBase
+except Exception:
+	_RequestsAuthBase = object
+
+import hashlib as _hashlib
+
+
+# --------------------------------------------------------------------------
+# Vlastná Digest auth s podporou MD5 / SHA-256 / SHA-512-256.
+# Dôvod: requests.auth.HTTPDigestAuth spoľahlivo zvláda len MD5. Tvheadend
+# od novších verzií ponúka Digest hash type SHA-256 / SHA-512/256, ktoré
+# stock HTTPDigestAuth nezvládne → pripojenie zlyhá aj so správnym heslom.
+# Táto trieda číta algorithm z WWW-Authenticate hlavičky a počíta digest
+# správnym hashom (RFC 2617 pre MD5, RFC 7616 pre SHA varianty).
+# Kompatibilné s Python 2.7 aj 3.x.
+# --------------------------------------------------------------------------
+def _digest_hash_factory(algorithm):
+	"""Vráti (hash_funkcia, je_sess) podľa názvu algoritmu z challenge."""
+	algo = (algorithm or 'MD5').upper().strip()
+	sess = algo.endswith('-SESS')
+	if sess:
+		algo = algo[:-5]
+	if algo == 'SHA-256':
+		def _h(data):
+			return _hashlib.sha256(data).hexdigest()
+	elif algo == 'SHA-512-256':
+		def _h(data):
+			try:
+				return _hashlib.new('sha512_256', data).hexdigest()
+			except (ValueError, TypeError):
+				return _hashlib.sha256(data).hexdigest()
+	else:
+		def _h(data):
+			return _hashlib.md5(data).hexdigest()
+	return _h, sess
+
+
+def _digest_to_bytes(s):
+	if isinstance(s, bytes):
+		return s
+	return s.encode('utf-8')
+
+
+def _digest_parse_challenge(header):
+	"""Rozparsuje WWW-Authenticate Digest hlavičku do dict."""
+	if header.lower().startswith('digest'):
+		header = header[6:].strip()
+	result = {}
+	pattern = re.compile(r'(\w+)=(?:"([^"]*)"|([^,]+))')
+	for m in pattern.finditer(header):
+		key = m.group(1).lower()
+		val = m.group(2) if m.group(2) is not None else m.group(3)
+		result[key] = val.strip()
+	return result
+
+
+class HTTPDigestAuthMulti(_RequestsAuthBase):
+	"""Digest auth s MD5/SHA-256/SHA-512-256. Drop-in za HTTPDigestAuth."""
+
+	def __init__(self, username, password):
+		self.username = username
+		self.password = password
+		self._nonce_count = 0
+		self._last_challenge = {}
+
+	def _build_header(self, method, url, challenge):
+		path = url
+		m = re.match(r'^[a-zA-Z]+://[^/]+(/.*)$', url)
+		if m:
+			path = m.group(1)
+		elif not url.startswith('/'):
+			path = '/' + url
+
+		realm = challenge.get('realm', '')
+		nonce = challenge.get('nonce', '')
+		qop = challenge.get('qop')
+		algorithm = challenge.get('algorithm', 'MD5')
+		opaque = challenge.get('opaque')
+
+		hfunc, is_sess = _digest_hash_factory(algorithm)
+
+		ha1 = hfunc(_digest_to_bytes('%s:%s:%s' % (self.username, realm, self.password)))
+		ha2 = hfunc(_digest_to_bytes('%s:%s' % (method, path)))
+
+		self._nonce_count += 1
+		nc = '%08x' % self._nonce_count
+		cnonce = _hashlib.sha1(
+			_digest_to_bytes(str(time.time()) + str(os.urandom(8)))
+		).hexdigest()[:16]
+
+		if is_sess:
+			ha1 = hfunc(_digest_to_bytes('%s:%s:%s' % (ha1, nonce, cnonce)))
+
+		if qop:
+			resp_data = '%s:%s:%s:%s:%s:%s' % (ha1, nonce, nc, cnonce, 'auth', ha2)
+			response = hfunc(_digest_to_bytes(resp_data))
+		else:
+			response = hfunc(_digest_to_bytes('%s:%s:%s' % (ha1, nonce, ha2)))
+
+		parts = [
+			'username="%s"' % self.username,
+			'realm="%s"' % realm,
+			'nonce="%s"' % nonce,
+			'uri="%s"' % path,
+			'response="%s"' % response,
+		]
+		if algorithm:
+			parts.append('algorithm=%s' % algorithm)
+		if opaque:
+			parts.append('opaque="%s"' % opaque)
+		if qop:
+			parts.append('qop=auth')
+			parts.append('nc=%s' % nc)
+			parts.append('cnonce="%s"' % cnonce)
+		return 'Digest ' + ', '.join(parts)
+
+	def _handle_401(self, r, **kwargs):
+		if r.status_code != 401:
+			return r
+		auth_header = r.headers.get('www-authenticate', '')
+		if 'digest' not in auth_header.lower():
+			return r
+		challenge = _digest_parse_challenge(auth_header)
+		self._last_challenge = challenge
+		r.content
+		r.close()
+		prep = r.request.copy()
+		try:
+			prep.headers['Authorization'] = self._build_header(
+				prep.method, prep.url, challenge)
+		except Exception:
+			return r
+		_r = r.connection.send(prep, **kwargs)
+		_r.history.append(r)
+		_r.request = prep
+		return _r
+
+	def __call__(self, r):
+		if self._last_challenge:
+			try:
+				r.headers['Authorization'] = self._build_header(
+					r.method, r.url, self._last_challenge)
+			except Exception:
+				pass
+		try:
+			r.register_hook('response', self._handle_401)
+		except Exception:
+			pass
+		return r
+
 # PIL je voliteľný – používa sa len na konverziu ikon
 try:
 	from PIL import Image as _PIL_Image
@@ -236,8 +387,10 @@ class Tvheadend(object):
 		if not user or mode == 'none':
 			sess.auth = None
 			return
-		if mode in ('digest', 'auto') and HTTPDigestAuth is not None:
-			sess.auth = HTTPDigestAuth(user, pwd)
+		if mode in ('digest', 'auto'):
+			# Vlastná digest auth s podporou MD5/SHA-256/SHA-512-256.
+			# Stock requests HTTPDigestAuth zvláda len MD5 — preto vlastná.
+			sess.auth = HTTPDigestAuthMulti(user, pwd)
 		else:
 			sess.auth = (user, pwd)
 

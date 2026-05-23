@@ -1,4 +1,23 @@
 Tvheadend plugin pre archivCZSK
+Verzia 0.61.0 (23.5.2026)
+================================================================
+
+Pripojenie / autentifikácia:
+
+  - Pridaná podpora Digest autentifikácie s hashom SHA-256 a
+    SHA-512/256 (predtým len MD5). Plugin teraz číta typ hashu
+    priamo z odpovede servera (WWW-Authenticate) a počíta digest
+    správnym algoritmom podľa RFC 7616.
+
+  - Rieši problém keď sa plugin nedokázal pripojiť k serveru,
+    ktorý mal v nastaveniach "Digest hash type" nastavený na
+    SHA-256 alebo SHA-512/256, hoci meno a heslo boli správne.
+    (Konfigurácia servera: HTTP Server Settings -> Digest hash
+    type.) Funguje teraz so všetkými troma typmi hashu bez
+    nutnosti meniť nastavenia servera na MD5.
+
+
+Tvheadend plugin pre archivCZSK
 Verzia 0.60.0 (22.5.2026)
 ================================================================
 
