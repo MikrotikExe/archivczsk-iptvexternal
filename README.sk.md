@@ -17,6 +17,10 @@ Klient pre [Tvheadend](https://tvheadend.org/) server cez ArchivCZSK
 framework:
 
 - Prehliadanie Tvheadend kanálov (živá TV + rádio) priamo z ArchivCZSK
+- Dva režimy pripojenia: **HTTP API** (port 9981) alebo natívny protokol
+  **HTSP** (port 9982) — voliteľné v nastaveniach. HTSP načíta všetky dáta
+  (kanály, EPG, DVR, tagy) cez jedno spojenie; streamovanie ide vždy priamo
+  cez Tvheadend HTTP endpoint (9981)
 - Prehrávanie DVR archívu s vyhľadávaním podľa názvu a žánrovou kategorizáciou
 - Sťahovanie piconov cez Tvheadend `imagecache` endpoint
 - Auto-generovaný Enigma2 userbouquet pre TV + Rádio
@@ -94,9 +98,9 @@ a ponúkne update koncovým používateľom.
 ├── LICENSE                                  ← GPL-2.0 licenčný text
 ├── repo/                                    ← release ZIP-y (jeden sub-dir per addon)
 │   ├── plugin.video.tvheadend/
-│   │   └── plugin.video.tvheadend-0.58.4.zip
+│   │   └── plugin.video.tvheadend-0.70.0.zip
 │   └── plugin.video.e2m3u2bouquet/
-│       └── plugin.video.e2m3u2bouquet-0.1.3.zip
+│       └── plugin.video.e2m3u2bouquet-0.2.1.zip
 ├── plugin_video_tvheadend/                  ← source: Tvheadend klient
 └── plugin_video_e2m3u2bouquet/              ← source: M3U to Bouquet
 ```

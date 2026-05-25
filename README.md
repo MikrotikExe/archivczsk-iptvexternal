@@ -17,6 +17,10 @@ Client for a [Tvheadend](https://tvheadend.org/) server via the ArchivCZSK
 framework:
 
 - Browse Tvheadend channels (live TV + radio) directly from ArchivCZSK
+- Two connection modes: **HTTP API** (port 9981) or native **HTSP** protocol
+  (port 9982) — selectable in settings. HTSP fetches all data (channels, EPG,
+  DVR, tags) over a single connection; streaming always goes directly via the
+  Tvheadend HTTP endpoint (9981)
 - DVR archive playback with title search and genre categorisation
 - Picon download via the Tvheadend `imagecache` endpoint
 - Auto-generated Enigma2 userbouquet for TV + Radio
@@ -95,9 +99,9 @@ GitHub and offers the update to end users.
 ├── LICENSE                                  ← GPL-2.0 license text
 ├── repo/                                    ← release ZIPs (one sub-dir per addon)
 │   ├── plugin.video.tvheadend/
-│   │   └── plugin.video.tvheadend-0.58.4.zip
+│   │   └── plugin.video.tvheadend-0.70.0.zip
 │   └── plugin.video.e2m3u2bouquet/
-│       └── plugin.video.e2m3u2bouquet-0.1.3.zip
+│       └── plugin.video.e2m3u2bouquet-0.2.1.zip
 ├── plugin_video_tvheadend/                  ← source: Tvheadend client
 └── plugin_video_e2m3u2bouquet/              ← source: M3U to Bouquet
 ```
