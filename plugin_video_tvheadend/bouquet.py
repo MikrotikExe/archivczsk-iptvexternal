@@ -1455,29 +1455,51 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 		if self._epg_cache is None:
 			self._epg_cache = {}
 			self._epg_cache_ts = now_ts
-			try:
-				data = self.cp.tvh.api_get(
-					"api/epg/events/grid",
-					{"limit": 999999, "sort": "start", "dir": "ASC"}
-				) or {}
-				entries = data.get("entries") or []
-			except Exception:
-				entries = []
-
-			for ev in entries:
+			if getattr(self.cp.tvh, 'is_htsp_mode', lambda: False)():
+				# HTSP mód: EPG z HTSP metadát (channelUuid = str(channelId))
 				try:
-					cuuid = ev.get("channelUuid")
-					if not cuuid:
-						continue
-					start = int(ev.get("start") or 0)
-					stop = int(ev.get("stop") or 0)
-					if not start or not stop:
-						continue
-					if stop <= fromts_i or start >= tots_i:
-						continue
-					self._epg_cache.setdefault(cuuid, []).append(ev)
+					data = self.cp.tvh.htsp_fetch_metadata(with_epg=True) or {}
+					for ev in data.get('events', []):
+						cid = ev.get('channelId')
+						if cid is None:
+							continue
+						start = int(ev.get('start') or 0)
+						stop = int(ev.get('stop') or 0)
+						if not start or not stop:
+							continue
+						if stop <= fromts_i or start >= tots_i:
+							continue
+						self._epg_cache.setdefault(str(cid), []).append({
+							'start': start, 'stop': stop,
+							'title': ev.get('title') or '',
+							'description': ev.get('description') or ev.get('summary') or '',
+						})
 				except Exception:
-					continue
+					pass
+			else:
+				try:
+					data = self.cp.tvh.api_get(
+						"api/epg/events/grid",
+						{"limit": 999999, "sort": "start", "dir": "ASC"}
+					) or {}
+					entries = data.get("entries") or []
+				except Exception:
+					entries = []
+
+				for ev in entries:
+					try:
+						cuuid = ev.get("channelUuid")
+						if not cuuid:
+							continue
+						start = int(ev.get("start") or 0)
+						stop = int(ev.get("stop") or 0)
+						if not start or not stop:
+							continue
+						if stop <= fromts_i or start >= tots_i:
+							continue
+						self._epg_cache.setdefault(cuuid, []).append(ev)
+					except Exception:
+						continue
 
 		for ev in self._epg_cache.get(ch_uuid, []):
 			try:

@@ -1,4 +1,75 @@
 Tvheadend plugin pre archivCZSK
+Verzia 0.70.0 (26.5.2026)
+================================================================
+
+HTSP režim — prepracovaný a stabilizovaný:
+
+  - Streamovanie v HTSP režime ide teraz PRIAMO cez TVH HTTP
+    endpoint (stream/channelid/, dvrfile/) na porte 9981, rovnako
+    ako v HTTP režime. HTSP (9982) sa používa už len na DÁTA
+    (kanály, EPG, DVR archív, tagy). Dôvod: prehrávač exteplayer3
+    nemá demuxer API ako Kodi pvr.hts, takže natívne HTSP
+    streamovanie na Enigme nie je možné. Stačí mať dostupný port
+    9981 pre stream (web rozhranie môže byť vypnuté).
+
+  - Vlastný HTSP→MPEG-TS muxer a interný streaming proxy (P_htsp)
+    úplne odstránené — nepoužívali sa.
+
+  - Načítanie dát: jeden zdieľaný HTSP fetch naplní kanály, tagy,
+    DVR aj EPG naraz (server ich posiela v jednom prúde). Zámok
+    (lock) zabraňuje dvom paralelným fetchom súčasne — chráni RAM
+    servera pred preťažením.
+
+  - Rýchle spustenie kanála: pre streamovanie sa ťahajú len kanály
+    (rýchla cesta, ~1-2s) bez čakania na celý DVR/EPG dump. Po
+    reštarte GUI sa kanál spustí okamžite namiesto desiatok sekúnd.
+
+  - Dvojfázový prefetch pri štarte: najprv rýchlo kanály, potom
+    (s odstupom) plný EPG+DVR pre archív. Nezdržuje prvé prehratie.
+
+  - EPG cache: neúplný EPG (keď server nestihne poslať celý) sa
+    necachuje nadlho — pri ďalšom otvorení sa dotiahne kompletný.
+    Časový limit fetchu zvýšený pre veľké archívy (8000+ nahrávok).
+
+  - DVR archív sa obnovuje s rozumným TTL (10 min) — nové nahrávky
+    pribudnú automaticky pri ďalšom otvorení.
+
+  - Opravená kategorizácia archívu (Filmy/Seriály/Šport/...) aj
+    poradie kategórií v automaticky generovanom userbouquete.
+
+  - Interný audit: odstránených ~700 riadkov mŕtveho kódu,
+    nepoužívané importy a premenné.
+
+================================================================
+
+Tvheadend plugin pre archivCZSK
+Verzia 0.62.0 (25.5.2026)
+================================================================
+
+HTSP režim pripojenia (nové):
+
+  - Pridaná podpora pripojenia cez natívny HTSP protokol (port
+    9982) ako alternatíva k HTTP API (9981). Prepínač "Connection
+    mode" v nastaveniach (HTTP API / HTSP).
+
+  - HTSP režim pokrýva kompletnú funkcionalitu: zoznam kanálov,
+    EPG, DVR archív, živé vysielanie aj picony. Bouquet export a
+    EPG injekcia fungujú rovnako ako v HTTP režime.
+
+  - DVR archív cez HTSP: nahrávky sa čítajú metódou fileOpen /
+    fileRead (/dvrfile/), čím sa získa originálny MPEG-TS súbor so
+    všetkými pôvodnými stopami (viac audio vrátane AC3 5.1,
+    teletext, DVB titulky).
+
+  - HTSP autentifikácia používa SHA1 digest z výzvy servera, takže
+    nie je dotknutá nastavením typu HTTP digest hashu.
+
+  - Pri zlyhaní HTSP modulu doplnok automaticky funguje v HTTP
+    režime (žiadny dopad na existujúce inštalácie).
+
+================================================================
+
+Tvheadend plugin pre archivCZSK
 Verzia 0.61.0 (23.5.2026)
 ================================================================
 

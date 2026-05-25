@@ -2,7 +2,10 @@
 <settings>
 
 	<setting label="Server (IP/domain or URL)" type="text" id="host" default="127.0.0.1"/>
+	<setting label="Connection mode" type="keyenum" id="connection_mode"
+			 values="http;HTTP API (9981)|htsp;HTSP (9982)" default="http"/>
 	<setting label="Port" type="text" id="port" default="9981"/>
+	<setting label="HTSP port" type="text" id="htsp_port" default="9982"/>
 	<setting label="Use HTTPS" type="bool" id="use_https" default="false"/>
 	<setting label="Username" type="text" id="username" default=""/>
 	<setting label="Password" type="password" id="password" default=""/>

@@ -17,10 +17,7 @@ from __future__ import absolute_import, unicode_literals, print_function
 
 import os
 import sys
-import json
 import time
-import base64
-import unicodedata
 from datetime import datetime
 
 try:
@@ -31,27 +28,12 @@ except ImportError:
 	except ImportError:
 		lzma = None
 
-# urllib for Py2/Py3
-try:
-	from urllib.request import Request, urlopen
-except ImportError:
-	from urllib2 import Request, urlopen
-
-# XMLTV iterparse (cElementTree faster on Py2)
-try:
-	from xml.etree.cElementTree import iterparse as _et_iterparse
-	from xml.etree.cElementTree import parse as _et_parse
-except ImportError:
-	from xml.etree.ElementTree import iterparse as _et_iterparse
-	from xml.etree.ElementTree import parse as _et_parse
-
 from tools_archivczsk.contentprovider.provider import CommonContentProvider
 from tools_archivczsk.contentprovider.exception import AddonErrorException
 
-# FIX 0.57.0 (skyjet PR #22 review): _I/_C/_B sú vždy dostupné v
-# tools_archivczsk.string_utils (guaranteed dependency); fallback dead code
-# odstránený.
-from tools_archivczsk.string_utils import _I, _C, _B
+# FIX 0.57.0 (skyjet PR #22 review): _I je vždy dostupné v
+# tools_archivczsk.string_utils (guaranteed dependency).
+from tools_archivczsk.string_utils import _I
 
 # FIX 0.57.0 (skyjet PR #22 review): tools.archivczsk je explicit dependency
 # v addon.xml (version 3.4+) — strip_accents je vždy dostupný, žiadny fallback
@@ -94,7 +76,7 @@ _EXPORT_TRIGGER_TTL_SEC = 1800  # 30 min
 # FIX 0.57.0 (skyjet PR #22 review): tools.archivczsk je guaranteed dependency
 # (addon.xml require version 3.4+), žiadny fallback netreba.
 from tools_archivczsk.cache import ExpiringLRUCache as _ExpiringLRUCache
-_DVR_CACHE = _ExpiringLRUCache(1, default_timeout=60)
+_DVR_CACHE = _ExpiringLRUCache(1, default_timeout=600)
 
 # Bouquet auto-refresh stamp
 _BOUQUET_REFRESH_STAMP = data_path("tvh_bouquet_refresh.stamp")
@@ -396,15 +378,27 @@ def _maybe_cleanup_poster_cache():
 
 
 def _get_dvr_finished_cached(tvh):
-	"""Vráti DVR nahrávky z cache (max 60 sekúnd staré)."""
-	if _DVR_CACHE is not None:
-		cached = _DVR_CACHE.get('dvr')
-		if cached is not None:
-			return cached
-	result = tvh.get_dvr_finished()
-	if _DVR_CACHE is not None:
-		_DVR_CACHE.put('dvr', result)
-	return result
+	"""Vráti DVR nahrávky. Cachuje len NEPRÁZDNY výsledok (TTL podľa
+	_DVR_CACHE = 10 min). Po vypršaní sa pri ďalšom otvorení natiahne
+	čerstvý DVR vrátane nových nahrávok. Prázdny výsledok sa necachuje
+	(nech sa skúsi znova kým prefetch dobehne)."""
+	try:
+		if _DVR_CACHE is not None:
+			cached = _DVR_CACHE.get('dvr')
+			if cached:
+				return cached
+	except Exception:
+		pass
+	try:
+		result = tvh.get_dvr_finished()
+	except Exception:
+		return []
+	try:
+		if _DVR_CACHE is not None and result:
+			_DVR_CACHE.put('dvr', result)
+	except Exception:
+		pass
+	return result or []
 
 
 # ============================================================================
@@ -441,7 +435,7 @@ def _get_dvr_finished_cached(tvh):
 # definícií.
 from .classifier import (
 	# Kategórie
-	_CAT_FILM, _CAT_SERIAL, _CAT_SPORT,
+	_CAT_FILM, _CAT_SERIAL,
 	_CAT_LABELS_ORDER,
 	# Display labels pre sub-kategórie (Filmy podžánre)
 	_MOVIE_SUBCAT_LABELS,
@@ -625,6 +619,37 @@ class TvheadendContentProvider(CommonContentProvider):
 			# Spustiť picon download na pozadí (non-blocking)
 			try:
 				self.tvh.init_picons_async()
+			except Exception:
+				pass
+
+			# HTSP: prefetch plných metadát (kanály+tagy+EPG+DVR) na pozadí,
+			# nech sú v cache keď user otvorí menu/archív. Beží v threade —
+			# neblokuje GUI. Prvé otvorenie počká ak prefetch ešte nedobehol.
+			try:
+				if self.tvh.is_htsp_mode():
+					import threading as _th
+					import time as _t
+					def _prefetch():
+						# 1) najprv RÝCHLO len kanály (channels_only, ~1-2s) —
+						#    naplní cache aby prvý klik na kanál po reboote
+						#    nemusel čakať na plný EPG+DVR fetch (~18s).
+						try:
+							self.tvh.htsp_fetch_metadata(with_epg=False,
+							                             channels_only=True)
+						except Exception:
+							pass
+						# 2) krátka pauza nech prípadný prvý stream/bouquet
+						#    refresh stihne použiť kanály z cache (lock voľný)
+						try:
+							_t.sleep(8)
+						except Exception:
+							pass
+						# 3) potom plný fetch (EPG+DVR) pre archív/EPG
+						try:
+							self.tvh.htsp_fetch_metadata(with_epg=True)
+						except Exception:
+							pass
+					_th.Thread(target=_prefetch, daemon=True).start()
 			except Exception:
 				pass
 
@@ -1180,10 +1205,11 @@ class TvheadendContentProvider(CommonContentProvider):
 
 			# FIX 0.49 / 0.49b: Top-level kategórie (Filmy/Seriály/Šport/...)
 			# Položka sa pridá len ak je v kategórii aspoň 1 záznam.
-			# FIX 0.49b: počty v zátvorke ODSTRÁNENÉ z labelov (užívateľ
-			# nechcel vidieť "(1417)" v menu).
+			# HTSP: DVR z prefetch cache; ak ešte nedobehol, kategórie
+			# pribudnú pri ďalšom otvorení (po dokončení prefetchu / TTL).
 			try:
-				_, _, _counts, _, _ = _get_classified_dvr(_get_dvr_finished_cached(self.tvh))
+				dvr_for_cats = _get_dvr_finished_cached(self.tvh)
+				_, _, _counts, _, _ = _get_classified_dvr(dvr_for_cats)
 				for cat_id, label_base in _CAT_LABELS_ORDER:
 					n = _counts.get(cat_id, 0)
 					if n <= 0:
@@ -1971,7 +1997,7 @@ class TvheadendContentProvider(CommonContentProvider):
 
 		try:
 			tags = self.tvh.get_tags()
-		except Exception as e:
+		except Exception:
 			# FIX 0.48h: nezostať s len "All" tichom — invaliduj cache (lebo
 			# get_tags zlyhalo aj keď check_login pred chvíľou OK) a ponúkni retry
 			try:
@@ -2365,7 +2391,7 @@ class TvheadendContentProvider(CommonContentProvider):
 
 		try:
 			entries = _get_dvr_finished_cached(self.tvh) or []
-		except Exception as e:
+		except Exception:
 			try:
 				self._invalidate_tvh_login_cache()
 			except Exception:
@@ -2818,6 +2844,8 @@ class TvheadendContentProvider(CommonContentProvider):
 		# 0.55beta: send data_item=entry so stats() callback (volaný
 		# frameworkom pri end/next playback eventu) môže correlate
 		# position s konkrétnou DVR entry.
+		# HTSP aj HTTP mód: DVR ide priamo cez TVH HTTP (dvrfile/<idStr>),
+		# je to hotový súbor → download=True (rovnaké správanie).
 		self.add_play(
 			title, url,
 			info_labels={'title': title},
