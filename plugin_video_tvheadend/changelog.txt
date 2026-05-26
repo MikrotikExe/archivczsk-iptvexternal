@@ -1,3 +1,29 @@
+Verzia 0.71.0 (26.5.2026)
+================================================================
+
+EPG injekcia a automaticky refresh:
+
+  - EPG sa teraz VZDY automaticky nainjektuje do userbouquetu po
+    kazdom restarte GUI / Enigma2. Startova injekcia pocka kym
+    framework dokonci svoj bouquet refresh a potom vynuti plny
+    EPG export (force) — EPG je dostupne aj po vycisteni cache.
+    Bezi na pozadi, nezdrzuje start.
+
+  - Nova volba "Auto-refresh bouquet + EPG interval" v nastaveniach
+    userbouquetu: vypnute / 4 / 8 / 16 / 24 hodin (predvolene 24h).
+    Cyklus obnovi bouquet AJ EPG. Ked je TVH nedostupny, refresh
+    sa odlozi a skusi znova o 5 minut.
+
+Opravy:
+
+  - Opravena injekcia EPG pri rucnom refreshi aj pri automatickom
+    cykle (predtym sa volala neexistujuca metoda a ticho zlyhavala).
+
+  - Opraveny watchdog: po vypadku a navrate TVH online sa bouquet
+    aj EPG realne obnovia.
+
+  - Odstranena race condition pri starte.
+
 Tvheadend plugin pre archivCZSK
 Verzia 0.70.0 (26.5.2026)
 ================================================================
