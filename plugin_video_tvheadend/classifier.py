@@ -36,6 +36,18 @@ import time
 # strip_accents as _strip_accents_compat` — wrapper alias z PR #13 ktorý
 # nikde nepoužitý. `_strip_accents_lower()` má vlastnú impl s unicodedata.
 
+# FIX 0.70.1 (Juraj): N_() gettext no-op marker pre extrakciu prekladov.
+# Label stringy kategórií (Movies, Series, ...) sú definované TU v
+# classifier.py, ale preklad sa aplikuje až v provider.py cez self._().
+# Bez tohto markeru ich xgettext (rebuild_lang.sh) nenašiel ako prekladové
+# a označil ich v .po ako obsolete (#~), takže SK/CZ preklad sa neaplikoval
+# a v menu zostali anglické originály (Movies, Series, Sport, ...).
+# N_() vracia string nezmenený (za behu žiadny efekt), ale xgettext ho
+# rozpozná ako prekladový reťazec. rebuild_lang.sh treba spustiť s
+# keyword N_ (pozri poznámku v _CAT_LABELS_ORDER).
+def N_(s):
+	return s
+
 # FIX 0.57.0: callback-based logging cez framework cp.log_info(). Provider
 # nastaví callback pri __init__-e. Bez nastaveného callback-u (test mode)
 # log entries sú silenced.
@@ -203,17 +215,17 @@ _CT_TO_CAT_BASE = {
 
 # Poradie a slovenské label-y. FIX 0.49b: bez počtu (užívateľ chcel počty preč)
 _CAT_LABELS_ORDER = (
-	(_CAT_FILM,           'Movies'),
-	(_CAT_SERIAL,         'Series'),
-	(_CAT_SPORT,          'Sport'),
-	(_CAT_SPRAVODAJSTVO,  'News'),
-	(_CAT_SHOW,           'Shows / Entertainment'),
-	(_CAT_DETSKE,         'Children'),
-	(_CAT_HUDBA,          'Music'),
-	(_CAT_UMENIE,         'Arts / Culture'),
-	(_CAT_DOKUMENTY,      'Documentaries / Educational'),
-	(_CAT_HOBBY,          'Leisure / Hobby'),
-	(_CAT_INE,            'Uncategorized'),
+	(_CAT_FILM,           N_('Movies')),
+	(_CAT_SERIAL,         N_('Series')),
+	(_CAT_SPORT,          N_('Sport')),
+	(_CAT_SPRAVODAJSTVO,  N_('News')),
+	(_CAT_SHOW,           N_('Shows / Entertainment')),
+	(_CAT_DETSKE,         N_('Children')),
+	(_CAT_HUDBA,          N_('Music')),
+	(_CAT_UMENIE,         N_('Arts / Culture')),
+	(_CAT_DOKUMENTY,      N_('Documentaries / Educational')),
+	(_CAT_HOBBY,          N_('Leisure / Hobby')),
+	(_CAT_INE,            N_('Uncategorized')),
 )
 
 
@@ -234,18 +246,18 @@ _MV_WESTERN     = 'mv_western'
 _MV_INE         = 'mv_ine'
 
 _MOVIE_SUBCAT_LABELS = (
-	(_MV_AKCNY,      'Action'),
-	(_MV_KOMEDIA,    'Comedy'),
-	(_MV_KRIMI,      'Crime / Thriller / Detective'),
-	(_MV_DRAMA,      'Drama'),
-	(_MV_SCIFI,      'Sci-fi / Fantasy'),
-	(_MV_ROMANTIKA,  'Romance'),
-	(_MV_HOROR,      'Horror'),
-	(_MV_DOBRODR,    'Adventure'),
-	(_MV_ANIMAK,     'Animation'),
-	(_MV_HISTORICKY, 'Historical / War'),
-	(_MV_WESTERN,    'Western'),
-	(_MV_INE,        'Other'),
+	(_MV_AKCNY,      N_('Action')),
+	(_MV_KOMEDIA,    N_('Comedy')),
+	(_MV_KRIMI,      N_('Crime / Thriller / Detective')),
+	(_MV_DRAMA,      N_('Drama')),
+	(_MV_SCIFI,      N_('Sci-fi / Fantasy')),
+	(_MV_ROMANTIKA,  N_('Romance')),
+	(_MV_HOROR,      N_('Horror')),
+	(_MV_DOBRODR,    N_('Adventure')),
+	(_MV_ANIMAK,     N_('Animation')),
+	(_MV_HISTORICKY, N_('Historical / War')),
+	(_MV_WESTERN,    N_('Western')),
+	(_MV_INE,        N_('Other')),
 )
 
 # DVB genre byte → sub-kategória (ak je dostupný v entry.genre)
@@ -329,20 +341,20 @@ _SP_NEWS        = 'sp_news'
 _SP_INE         = 'sp_ine'
 
 _SPORT_SUBCAT_LABELS = (
-	(_SP_FUTBAL,      'Football'),
-	(_SP_HOKEJ,       'Hockey'),
-	(_SP_BASKETBAL,   'Basketball'),
-	(_SP_TENIS,       'Tennis'),
-	(_SP_VOLEJBAL,    'Volleyball'),
-	(_SP_HADZANA,     'Handball'),
-	(_SP_ATLETIKA,    'Athletics'),
-	(_SP_CYKLISTIKA,  'Cycling'),
-	(_SP_MOTORSPORT,  'Motorsport'),
-	(_SP_BOJOVE,      'Combat sports'),
-	(_SP_ZIMNE,       'Winter sports'),
-	(_SP_VODNE,       'Water sports'),
-	(_SP_NEWS,        'Sports news'),
-	(_SP_INE,         'Other'),
+	(_SP_FUTBAL,      N_('Football')),
+	(_SP_HOKEJ,       N_('Hockey')),
+	(_SP_BASKETBAL,   N_('Basketball')),
+	(_SP_TENIS,       N_('Tennis')),
+	(_SP_VOLEJBAL,    N_('Volleyball')),
+	(_SP_HADZANA,     N_('Handball')),
+	(_SP_ATLETIKA,    N_('Athletics')),
+	(_SP_CYKLISTIKA,  N_('Cycling')),
+	(_SP_MOTORSPORT,  N_('Motorsport')),
+	(_SP_BOJOVE,      N_('Combat sports')),
+	(_SP_ZIMNE,       N_('Winter sports')),
+	(_SP_VODNE,       N_('Water sports')),
+	(_SP_NEWS,        N_('Sports news')),
+	(_SP_INE,         N_('Other')),
 )
 
 # Keyword → sport sub-cat. PORADIE má význam:
@@ -461,12 +473,12 @@ _NW_POCASIE     = 'nw_pocasie'       # Počasie
 _NW_INE         = 'nw_ine'
 
 _NEWS_SUBCAT_LABELS = (
-	(_NW_HLAVNE,    'Main news'),
-	(_NW_POLITIKA,  'Politics / Discussion'),
-	(_NW_KRIMI,     'Crime / Reports'),
-	(_NW_MAGAZINY,  'Magazines / Lifestyle'),
-	(_NW_POCASIE,   'Weather'),
-	(_NW_INE,       'Other'),
+	(_NW_HLAVNE,    N_('Main news')),
+	(_NW_POLITIKA,  N_('Politics / Discussion')),
+	(_NW_KRIMI,     N_('Crime / Reports')),
+	(_NW_MAGAZINY,  N_('Magazines / Lifestyle')),
+	(_NW_POCASIE,   N_('Weather')),
+	(_NW_INE,       N_('Other')),
 )
 
 _NEWS_KEYWORD_TO_SUBCAT = (
@@ -502,13 +514,13 @@ _SH_MAGAZINY    = 'sh_magaziny'      # Magazíny ako Klíč, Reflex
 _SH_INE         = 'sh_ine'
 
 _SHOW_SUBCAT_LABELS = (
-	(_SH_REALITY,    'Reality show'),
-	(_SH_SUTAZ,      'Competition shows / Talents'),
-	(_SH_KUCHARSKE,  'Cooking shows'),
-	(_SH_TALK,       'Talk show'),
-	(_SH_ZABAVA,     'Entertainment / Comedy'),
-	(_SH_MAGAZINY,   'Magazines'),
-	(_SH_INE,        'Other'),
+	(_SH_REALITY,    N_('Reality show')),
+	(_SH_SUTAZ,      N_('Competition shows / Talents')),
+	(_SH_KUCHARSKE,  N_('Cooking shows')),
+	(_SH_TALK,       N_('Talk show')),
+	(_SH_ZABAVA,     N_('Entertainment / Comedy')),
+	(_SH_MAGAZINY,   N_('Magazines')),
+	(_SH_INE,        N_('Other')),
 )
 
 _SHOW_KEYWORD_TO_SUBCAT = (
@@ -554,11 +566,11 @@ _CH_FILMY       = 'ch_filmy'         # Detské filmy
 _CH_INE         = 'ch_ine'
 
 _CHILDREN_SUBCAT_LABELS = (
-	(_CH_ANIMAK,     'Animated / Cartoons'),
-	(_CH_ROZPRAVKY,  'Fairy tales'),
-	(_CH_VZDELAVAC,  'Educational'),
-	(_CH_FILMY,      'Movies for children'),
-	(_CH_INE,        'Other'),
+	(_CH_ANIMAK,     N_('Animated / Cartoons')),
+	(_CH_ROZPRAVKY,  N_('Fairy tales')),
+	(_CH_VZDELAVAC,  N_('Educational')),
+	(_CH_FILMY,      N_('Movies for children')),
+	(_CH_INE,        N_('Other')),
 )
 
 _CHILDREN_KEYWORD_TO_SUBCAT = (
@@ -588,12 +600,12 @@ _MU_MAGAZINY    = 'mu_magaziny'      # Hudobné magazíny
 _MU_INE         = 'mu_ine'
 
 _MUSIC_SUBCAT_LABELS = (
-	(_MU_KONCERT,   'Concerts'),
-	(_MU_KLASIKA,   'Classical music / Opera'),
-	(_MU_HITY,      'Charts / Pop'),
-	(_MU_FOLK,      'Folk / Country / Traditional'),
-	(_MU_MAGAZINY,  'Music magazines'),
-	(_MU_INE,       'Other'),
+	(_MU_KONCERT,   N_('Concerts')),
+	(_MU_KLASIKA,   N_('Classical music / Opera')),
+	(_MU_HITY,      N_('Charts / Pop')),
+	(_MU_FOLK,      N_('Folk / Country / Traditional')),
+	(_MU_MAGAZINY,  N_('Music magazines')),
+	(_MU_INE,       N_('Other')),
 )
 
 _MUSIC_KEYWORD_TO_SUBCAT = (
@@ -626,11 +638,11 @@ _AR_LITERATURA  = 'ar_literatura'    # Literatúra, knihy
 _AR_INE         = 'ar_ine'
 
 _ARTS_SUBCAT_LABELS = (
-	(_AR_DIVADLO,    'Theater'),
-	(_AR_FILM,       'Film art'),
-	(_AR_VYTVARNE,   'Fine arts / Painting'),
-	(_AR_LITERATURA, 'Literature / Books'),
-	(_AR_INE,        'Other'),
+	(_AR_DIVADLO,    N_('Theater')),
+	(_AR_FILM,       N_('Film art')),
+	(_AR_VYTVARNE,   N_('Fine arts / Painting')),
+	(_AR_LITERATURA, N_('Literature / Books')),
+	(_AR_INE,        N_('Other')),
 )
 
 _ARTS_KEYWORD_TO_SUBCAT = (
@@ -662,13 +674,13 @@ _DC_OSOBNOSTI   = 'dc_osobnosti'     # Biografie, portréty
 _DC_INE         = 'dc_ine'
 
 _DOCS_SUBCAT_LABELS = (
-	(_DC_PRIRODA,    'Nature / Animals'),
-	(_DC_HISTORIA,   'History / Archaeology'),
-	(_DC_VEDA,       'Science / Technology / Space'),
-	(_DC_CESTOPIS,   'Travel / Geography'),
-	(_DC_SPOLOCNOST, 'Society / Politics'),
-	(_DC_OSOBNOSTI,  'Personalities / Biography'),
-	(_DC_INE,        'Other'),
+	(_DC_PRIRODA,    N_('Nature / Animals')),
+	(_DC_HISTORIA,   N_('History / Archaeology')),
+	(_DC_VEDA,       N_('Science / Technology / Space')),
+	(_DC_CESTOPIS,   N_('Travel / Geography')),
+	(_DC_SPOLOCNOST, N_('Society / Politics')),
+	(_DC_OSOBNOSTI,  N_('Personalities / Biography')),
+	(_DC_INE,        N_('Other')),
 )
 
 _DOCS_KEYWORD_TO_SUBCAT = (
@@ -711,14 +723,14 @@ _HB_DIY         = 'hb_diy'           # DIY, kutilstvo
 _HB_INE         = 'hb_ine'
 
 _HOBBY_SUBCAT_LABELS = (
-	(_HB_ZAHRADA,    'Garden'),
-	(_HB_BYVANIE,    'Living / Renovation'),
-	(_HB_VARENIE,    'Cooking / Recipes'),
-	(_HB_AUTO,       'Auto / Moto'),
-	(_HB_CESTOVANIE, 'Travel'),
-	(_HB_ZDRAVIE,    'Health / Fitness'),
-	(_HB_DIY,        'DIY / Crafts'),
-	(_HB_INE,        'Other'),
+	(_HB_ZAHRADA,    N_('Garden')),
+	(_HB_BYVANIE,    N_('Living / Renovation')),
+	(_HB_VARENIE,    N_('Cooking / Recipes')),
+	(_HB_AUTO,       N_('Auto / Moto')),
+	(_HB_CESTOVANIE, N_('Travel')),
+	(_HB_ZDRAVIE,    N_('Health / Fitness')),
+	(_HB_DIY,        N_('DIY / Crafts')),
+	(_HB_INE,        N_('Other')),
 )
 
 _HOBBY_KEYWORD_TO_SUBCAT = (

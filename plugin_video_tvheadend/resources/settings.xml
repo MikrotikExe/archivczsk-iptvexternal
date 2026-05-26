@@ -20,9 +20,9 @@
 		<setting label="Automatically export channel list as userbouquet"
 				 id="enable_userbouquet" type="bool" default="false" />
 
-		<setting label="Auto-refresh bouquet interval"
+		<setting label="Auto-refresh bouquet + EPG interval"
 				 id="bouquet_refresh_interval" type="keyenum"
-				 values="0;Disabled|14400;4 hours|28800;8 hours|57600;16 hours|86400;24 hours|172800;2 days|604800;7 days" default="86400"/>
+				 values="0;Disabled|14400;4 hours|28800;8 hours|57600;16 hours|86400;24 hours" default="86400"/>
 
 		<setting label="Allow creating userbouquet for radios"
 				 id="enable_userbouquet_radio" type="bool" default="false" />

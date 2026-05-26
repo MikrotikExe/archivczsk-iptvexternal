@@ -509,6 +509,11 @@ class TvheadendContentProvider(CommonContentProvider):
 		CommonContentProvider.__init__(self, *args, **kwargs)
 		self.tvh = Tvheadend(self)
 		self._bouquet_gen = None
+		# FIX 0.70.2 (Juraj): flag pre vynútenú EPG injekciu raz za beh
+		# pluginu. Po reštarte GUI / Enigma2 sa provider re-inicializuje,
+		# takže flag sa resetuje na False → štartová injekcia zbehne znova.
+		# Tým je splnené "EPG injekcia vždy po reštarte GUI/E2".
+		self._epg_injected_this_boot = False
 		# FIX 0.57.0: zaregistrovať log callbacky v sub-moduloch aby ich
 		# diagnostiky šli do archivCZSK.log. Python logging.getLogger v
 		# plugine NEJDE do archivCZSK.log — framework zachytí len
@@ -653,18 +658,77 @@ class TvheadendContentProvider(CommonContentProvider):
 			except Exception:
 				pass
 
-			# Export bouquet/EPG na pozadí s TTL ochranou
-			if self._bouquet_gen is not None:
+			# FIX 0.70.2 (Juraj): EPG injekcia VŽDY po štarte GUI/Enigma2.
+			_boot_inject_started = False
+			# Framework pri štarte sám spúšťa loop(refresh bouquet) +
+			# loop_changed(refresh xmlepg) pre každý doplnok — ALE xmlepg bez
+			# force, takže keď sa checksum nezmenil (epg.dat prežil reštart),
+			# export sa PRESKOČÍ a pri vyčistenej cache by EPG chýbalo.
+			# Riešenie: NEvoláme vlastný refresh_bouquet (to robí framework —
+			# volať ho druhýkrát súbežne = race condition), ale počkáme kým
+			# framework dokončí štartový bouquet refresh (bouquet_refresh_running
+			# flag) a potom VYNÚTIME jeden xmlepg export (force=True). Beží
+			# na pozadí (thread) aby neblokoval login/GUI. Raz za beh pluginu.
+			if self._bouquet_gen is not None and not self._epg_injected_this_boot:
+				try:
+					if bool(self._bouquet_gen.get_setting('enable_userbouquet')):
+						self._epg_injected_this_boot = True
+						_boot_inject_started = True
+						import threading as _threading
+						import time as _time_mod
+
+						def _boot_epg_inject():
+							try:
+								# Počkaj kým framework dokončí svoj štartový
+								# bouquet refresh (max ~90s), nech nekolíduje
+								# load_channel_list ani enigma EPG zápis.
+								for _ in range(90):
+									if not getattr(self._bouquet_gen,
+									                'bouquet_refresh_running', False):
+										break
+									_time_mod.sleep(1)
+								# malá rezerva nech dobehne aj framework-ov
+								# (neforced) xmlepg ktorý beží hneď po bouquete
+								_time_mod.sleep(3)
+								self.log_info('[Tvheadend.bouquet] štartová EPG '
+								              'injekcia (po reštarte GUI/E2) — '
+								              'vynucujem export (force)')
+								self._bouquet_gen.refresh_xmlepg(force=True)
+								self.log_info('[Tvheadend.bouquet] štartová EPG '
+								              'injekcia dokončená')
+							except Exception as _be:
+								try:
+									self.log_error('[Tvheadend.bouquet] štartová '
+									               'EPG injekcia zlyhala: %s' % _be)
+								except Exception:
+									pass
+
+						_bt = _threading.Thread(target=_boot_epg_inject,
+						                        name='TVHBootEpgInject')
+						_bt.daemon = True
+						_bt.start()
+				except Exception as e:
+					try:
+						self.log_error('[Tvheadend.bouquet] štartová EPG injekcia '
+						               'naplánovanie zlyhalo: %s' % e)
+					except Exception:
+						pass
+
+			# Export bouquet/EPG na pozadí s TTL ochranou (pre silent re-login
+			# z HTTP handlera). Preskočíme ak práve bežala štartová injekcia
+			# vyššie — tá už robí plný force refresh, druhé volania by len
+			# zbytočne kolidovali (bouquet_refresh_running by ich aj tak skipol).
+			if self._bouquet_gen is not None and not _boot_inject_started:
 				try:
 					self._maybe_trigger_exports(silent=bool(silent))
 				except Exception:
 					pass
 
-			# Auto-refresh bouquetu podľa nastaveného intervalu
-			try:
-				self._maybe_auto_refresh_bouquet()
-			except Exception:
-				pass
+				# Auto-refresh bouquetu + EPG podľa nastaveného intervalu (4/8/16/24h)
+				try:
+					self._maybe_auto_refresh_bouquet()
+				except Exception:
+					pass
 
 			# FIX 0.58.2 (skyjet PR #22 review #11 follow-up): nezávislý EPG
 			# auto-inject odstránený — framework `BouquetXmlEpgGenerator`
@@ -760,7 +824,11 @@ class TvheadendContentProvider(CommonContentProvider):
 					# Background refresh (non-blocking)
 					if self._bouquet_gen is not None:
 						try:
-							self._bouquet_gen.refresh_userbouquet_start()
+							# FIX 0.71.0 (audit): predtým refresh_userbouquet_start()
+							# — tá v base class NEEXISTUJE → ticho padla do except,
+							# takže po návrate TVH online sa bouquet/EPG NEobnovil.
+							# bouquet_settings_changed reťazí refresh_bouquet → EPG.
+							self._bouquet_gen.bouquet_settings_changed('watchdog_online', None)
 							with open(_BOUQUET_REFRESH_STAMP, 'w') as f:
 								f.write(str(int(time.time())))
 						except Exception:
@@ -1040,8 +1108,12 @@ class TvheadendContentProvider(CommonContentProvider):
 				return
 
 			# Spusti refresh — task beží na pozadí
+			# FIX 0.70.2 (Juraj): bouquet_settings_changed reťazí refresh_bouquet
+			# → refresh_xmlepg, takže cyklický auto-refresh teraz obnoví aj EPG
+			# (nielen kanály). Predtým volaný refresh_userbouquet_start()
+			# neexistuje v base triede (padal ticho) a EPG nereťazil.
 			try:
-				self._bouquet_gen.refresh_userbouquet_start()
+				self._bouquet_gen.bouquet_settings_changed('interval_trigger', None)
 				# úspešne naplánované → stamp je teraz
 				try:
 					with open(_BOUQUET_REFRESH_STAMP, 'w') as f:
@@ -1097,14 +1169,24 @@ class TvheadendContentProvider(CommonContentProvider):
 				return
 
 		# *_start() len naplánujú tasky – neblokujú GUI
+		# FIX 0.70.1 (Juraj): predtým sa volalo refresh_userbouquet_start()
+		# (tá metóda v base BouquetXmlEpgGenerator NEEXISTUJE → padala ticho
+		# do except) + refresh_xmlepg_start() samostatne. Výsledok: EPG sa
+		# často nenaplánoval (zdieľaný bgservice názov tasku + bouquet_refresh_running
+		# flag). Správna framework cesta je bouquet_settings_changed(), ktorá
+		# spoľahlivo reťazí refresh_bouquet → (callback) → refresh_xmlepg.
 		try:
-			self._bouquet_gen.refresh_userbouquet_start()
+			self._bouquet_gen.bouquet_settings_changed('manual_trigger', None)
 		except Exception:
-			pass
-		try:
-			self._bouquet_gen.refresh_xmlepg_start()
-		except Exception:
-			pass
+			# fallback na pôvodné volania ak by sa API frameworku zmenilo
+			try:
+				self._bouquet_gen.refresh_userbouquet_start()
+			except Exception:
+				pass
+			try:
+				self._bouquet_gen.refresh_xmlepg_start(force=True)
+			except Exception:
+				pass
 
 	# ------------------------------------------------------------------
 	# Pomocné
@@ -1497,6 +1579,18 @@ class TvheadendContentProvider(CommonContentProvider):
 
 					# 4) Vygeneruj nanovo (vrátane download_picons)
 					self._bouquet_gen.refresh_bouquet()
+
+					# 5) FIX 0.70.1 (Juraj): manuálny full refresh predtým NEvolal
+					# EPG injekciu — generoval len kanály/picony, takže userbouquet
+					# zostal bez EPG. Automatický framework reťazí refresh_xmlepg
+					# po refresh_bouquet cez callback, ale táto ručná cesta ho
+					# obchádza. Doplnené explicitné volanie (force=True, lebo
+					# checksum sa nemusel zmeniť).
+					try:
+						self._bouquet_gen.refresh_xmlepg(force=True)
+						self.log_info('[Tvheadend.bouquet] full_refresh: XML EPG injekcia dokončená')
+					except Exception as _epg_e:
+						self.log_error('[Tvheadend.bouquet] full_refresh: EPG injekcia zlyhala: %s' % _epg_e)
 
 					# Zapíš nový stamp
 					try:
