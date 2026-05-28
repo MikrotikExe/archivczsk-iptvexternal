@@ -224,6 +224,16 @@ _PICON_TTL_DAYS = 7
 # FIX 0.48j: stamp v persistent data dir-u, nie v /tmp
 _PICON_STAMP = data_path("tvh_picon.stamp")
 _PICON_MAX_WORKERS = 6
+# FIX 0.71.1: EARLY-ABORT proti OOM na slabých boxoch.
+# Ak server nemá ŽIADNE imagecache picony (napr. zle nakonfigurovaný TVH —
+# vracia 404 na všetko), starší kód preženie cez sieť všetkých N kanálov
+# (568+) hoci ani jeden neexistuje. Na boxe s ~300 MB RAM (Formuler F4 turbo)
+# to spolu s načítaním kanálov/EPG vyčerpá pamäť → kernel zabije enigma2
+# (SIGKILL, bez crash logu, tichý reboot GUI). A keďže reboot vyprázdni
+# in-memory 404 cache, cyklus sa opakuje pri každom uložení údajov.
+# Riešenie: keď príde _PICON_EARLY_ABORT_404 ×404 a 0 úspešných sťahovaní,
+# je jasné že server picony nemá → zrušíme zvyšok a označíme do 404 cache.
+_PICON_EARLY_ABORT_404 = 30
 _picon_worker_lock = threading.Lock()
 
 # threading.Event – signalizuje že picon worker dobehol
@@ -859,9 +869,26 @@ class Tvheadend(object):
 			ok_count = [0]
 			err_count = [0]
 			err_404_count = [0]  # FIX 0.48b: tracknúť 404 zvlášť
+			# FIX 0.71.1: early-abort stav
+			aborted_count = [0]            # koľko jobov sme preskočili po abort-e
+			abort_event = threading.Event()  # set() => server nemá picony, končíme
 			# Per-thread logujeme len prvých 5 FAIL-ov, zvyšok len count
 			_LOG_FAIL_LIMIT = 5
 			err_log_lock = threading.Lock()
+
+			def _maybe_trigger_abort():
+				# Volá sa POD err_log_lock-om.
+				# Podmienka: žiadne úspešné stiahnutie + dosť 404 => server
+				# zjavne nemá imagecache picony, nemá zmysel skúšať zvyšok.
+				if (not abort_event.is_set()
+						and ok_count[0] == 0
+						and err_404_count[0] >= _PICON_EARLY_ABORT_404):
+					abort_event.set()
+					self._log_picon(
+						'EARLY-ABORT: %d×404 a 0 úspešných — server nemá '
+						'imagecache picony, ruším zvyšok sťahovania '
+						'(ochrana pred preťažením/OOM na slabých boxoch)'
+						% err_404_count[0])
 
 			def _record_fail(icon, exc):
 				err_count[0] += 1
@@ -879,9 +906,16 @@ class Tvheadend(object):
 					elif err_count[0] == _LOG_FAIL_LIMIT + 1:
 						self._log_picon('... (suppressing further per-file '
 						                'FAIL logs; summary at end)')
+					# FIX 0.71.1: vyhodnoť či netreba prerušiť celý batch
+					_maybe_trigger_abort()
 
 			if _queue_mod is None:
 				for icon, dst in jobs:
+					# FIX 0.71.1: po abort-e zvyšok len označíme 404 a preskočíme
+					if abort_event.is_set():
+						_picon_mark_404(icon)
+						aborted_count[0] += 1
+						continue
 					try:
 						self._download_image(icon, dst)
 						ok_count[0] += 1
@@ -898,6 +932,23 @@ class Tvheadend(object):
 					sess = self.cp.get_requests_session()
 					self._apply_auth_to_session(sess)
 					while True:
+						# FIX 0.71.1: ak padol early-abort, zvyšok fronty len
+						# vyprázdnime (mark 404 + task_done) bez sťahovania,
+						# inak by q.join() zamrzol.
+						if abort_event.is_set():
+							while True:
+								try:
+									icon, dst = q.get_nowait()
+								except Exception:
+									return
+								try:
+									_picon_mark_404(icon)
+									aborted_count[0] += 1
+								finally:
+									try:
+										q.task_done()
+									except Exception:
+										pass
 						try:
 							icon, dst = q.get_nowait()
 						except Exception:
@@ -924,11 +975,12 @@ class Tvheadend(object):
 
 			self._write_stamp(_PICON_STAMP, now)
 			# FIX 0.48b: sumár s rozdelením 404 vs ostatné
+			# FIX 0.71.1: + aborted (preskočené po early-abort-e)
 			other_err = err_count[0] - err_404_count[0]
-			self._log_picon('Done: ok=%d, err=%d (404=%d, other=%d). '
+			self._log_picon('Done: ok=%d, err=%d (404=%d, other=%d), aborted=%d. '
 			                '404 cache size: %d' %
 			                (ok_count[0], err_count[0], err_404_count[0],
-			                 other_err, _picon_404_count()))
+			                 other_err, aborted_count[0], _picon_404_count()))
 		except Exception as e:
 			self._log_picon('Worker exception: %s' % e)
 		finally:

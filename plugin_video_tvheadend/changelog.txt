@@ -1,30 +1,56 @@
-Verzia 0.71.0 (26.5.2026)
+Tvheadend plugin pre archivCZSK
+Verzia 0.71.1 (28.5.2026)
 ================================================================
-
-EPG injekcia a automaticky refresh:
-
-  - EPG sa teraz VZDY automaticky nainjektuje do userbouquetu po
-    kazdom restarte GUI / Enigma2. Startova injekcia pocka kym
-    framework dokonci svoj bouquet refresh a potom vynuti plny
-    EPG export (force) — EPG je dostupne aj po vycisteni cache.
-    Bezi na pozadi, nezdrzuje start.
-
-  - Nova volba "Auto-refresh bouquet + EPG interval" v nastaveniach
-    userbouquetu: vypnute / 4 / 8 / 16 / 24 hodin (predvolene 24h).
-    Cyklus obnovi bouquet AJ EPG. Ked je TVH nedostupny, refresh
-    sa odlozi a skusi znova o 5 minut.
 
 Opravy:
 
-  - Opravena injekcia EPG pri rucnom refreshi aj pri automatickom
-    cykle (predtym sa volala neexistujuca metoda a ticho zlyhavala).
+  - Opravený pád (reštart GUI) na slabších prijímačoch s malou
+    pamäťou (napr. Formuler F4 turbo a podobné mips boxy s ~300 MB
+    RAM). Obraz sa reštartol hneď po uložení prihlasovacích údajov
+    k TVH serveru — bez modrej obrazovky a bez chybového hlásenia.
 
-  - Opraveny watchdog: po vypadku a navrate TVH online sa bouquet
-    aj EPG realne obnovia.
+    Príčina: ak TVH server nemal žiadne picony (ikony kanálov),
+    doplnok sa zbytočne pokúšal stiahnuť ikony pre všetkých 568+
+    kanálov naraz; na slabom prijímači to vyčerpalo pamäť a systém
+    násilne ukončil enigma2.
 
-  - Odstranena race condition pri starte.
+    Oprava: doplnok teraz po 30 neúspešných pokusoch (404) rozpozná,
+    že server ikony nemá, a sťahovanie preruší. Na serveroch ktoré
+    ikony majú sa správanie nemení — stiahnu sa normálne všetky.
+
 
 Tvheadend plugin pre archivCZSK
+Verzia 0.71.0 (26.5.2026)
+================================================================
+
+EPG injekcia a automatický refresh:
+
+  - EPG sa teraz VŽDY automaticky nainjektuje do userbouquetu po
+    každom reštarte GUI / Enigma2. Štartová injekcia počká kým
+    framework dokončí svoj bouquet refresh a potom vynúti plný
+    EPG export (force) — EPG je dostupné aj po vyčistení cache,
+    nielen keď prežil epg.dat. Beží na pozadí, nezdržuje štart.
+
+  - Nová voľba "Auto-refresh bouquet + EPG interval" v nastaveniach
+    userbouquetu: vypnuté / 4 / 8 / 16 / 24 hodín (predvolené 24h).
+    Cyklus obnoví bouquet AJ EPG (nielen kanály). Keď je TVH server
+    nedostupný, refresh sa odloží a skúsi znova o 5 minút.
+
+Opravy:
+
+  - Opravená injekcia EPG pri ručnom refreshi ("Obnoviť TVH bouquet
+    + XML EPG") aj pri automatickom cykle. Predtým sa volala metóda
+    ktorá v základnej triede neexistuje a ticho zlyhávala, takže
+    EPG sa do bouquetu nedostalo. Teraz sa spoľahlivo reťazí
+    bouquet → EPG export.
+
+  - Opravený watchdog: po výpadku a návrate TVH servera online sa
+    teraz bouquet aj EPG reálne obnovia (predtým ticho zlyhalo).
+
+  - Odstránená súbežnosť (race condition) pri štarte medzi vlastnou
+    injekciou a framework refreshom.
+
+
 Verzia 0.70.0 (26.5.2026)
 ================================================================
 
