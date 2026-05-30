@@ -25,6 +25,10 @@ framework:
 - Sťahovanie piconov cez Tvheadend `imagecache` endpoint
 - Auto-generovaný Enigma2 userbouquet pre TV + Rádio
 - Priama EPG injekcia do Enigma2 `eEPGCache` (bez potreby epgimport pluginu)
+- Natívny DVB prehrávač (OE≥2.5) pre zapovanie v userbouquete aj prehrávanie
+  priamo v doplnku (live + DVR) — prehráva cez hardvérový demux prijímača, čím
+  zachová natívne DVB titulky/teletext; vyžaduje na Tvheadend serveri povolenú
+  plain/basic autentifikáciu (Authentication type = „Both plain and digest")
 - Lokalizácia: 🇸🇰 slovenčina, 🇨🇿 čeština, 🇬🇧 angličtina
 
 ### 📡 plugin.video.e2m3u2bouquet — E2m3u2bouquet
@@ -98,7 +102,7 @@ a ponúkne update koncovým používateľom.
 ├── LICENSE                                  ← GPL-2.0 licenčný text
 ├── repo/                                    ← release ZIP-y (jeden sub-dir per addon)
 │   ├── plugin.video.tvheadend/
-│   │   └── plugin.video.tvheadend-0.70.0.zip
+│   │   └── plugin.video.tvheadend-0.72.0.zip
 │   └── plugin.video.e2m3u2bouquet/
 │       └── plugin.video.e2m3u2bouquet-0.2.1.zip
 ├── plugin_video_tvheadend/                  ← source: Tvheadend klient
