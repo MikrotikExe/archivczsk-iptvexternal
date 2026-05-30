@@ -1,4 +1,40 @@
 Tvheadend plugin pre archivCZSK
+Verzia 0.72.0 (30.5.2026)
+================================================================
+
+Novinky:
+
+  - Natívny DVB prehrávač ako 4. voľba v "Player used for
+    userbouquet" (sekcia Userbouquet): "DVB (OE>=2.5)". Pri jej
+    výbere sa kanály v userbouquete zapíšu ako service ref typu 1
+    (eServiceFactoryDVB) s priamou TVH stream URL namiesto Playlive
+    proxy. Prehrávanie ide cez hardvérový demux receiveru — nižšia
+    latencia, natívne DVB titulky/teletext, vhodné aj pre slabšie boxy.
+
+    POZOR: native DVB http zdroj v Enigme robí BASIC autentifikáciu.
+    TVH server preto musí akceptovať plain/basic auth — v
+    Configuration -> General -> HTTP Server Settings nastav
+    "Authentication type" na "Both plain and digest" (alebo "Plain").
+    Pri digest-only serveri DVB chain neoverí a kanály nepôjdu.
+
+    Prihlasovacie údaje sa pri tejto voľbe ukladajú do userbouquet
+    súboru v čitateľnej forme (rovnako ako bežné IPTV bouquety).
+    Profil je pre DVB vynútený na "pass" (originálne PIDy/tabuľky).
+
+    Picon aj EPG párovanie zostáva zachované (menia sa len typ a
+    URL v service ref-e, polia SID/TSID/namespace ostávajú).
+
+  - Natívny DVB prehrávač aj pre prehrávanie priamo v doplnku
+    (in-app) — pre LIVE kanál aj ARCHÍV/DVR. Nová voľba vo Všeobecné
+    "Prehrávač v doplnku (live + DVR)" s možnosťou "DVB (OE>=2.5)".
+    Pri jej výbere plugin vynúti prehrávanie cez service ref typu 1
+    (forced_player) → HW demux → natívne DVB titulky/teletext aj pri
+    prehrávaní z menu doplnku. "Default" ponechá frameworkový prehrávač
+    ("Používať prehrávač"). DVB voľba má rovnaký BASIC auth predpoklad
+    ako userbouquet DVB.
+
+
+Tvheadend plugin pre archivCZSK
 Verzia 0.71.1 (28.5.2026)
 ================================================================
 

@@ -257,25 +257,21 @@ class _TvhBouquetGenerator(BouquetGenerator):
 		# Framework parent vytvorí prefix, default name, namespace, TID, atď.
 		BouquetGenerator.__init__(self, bxeg, channel_type)
 
-		# FIX 0.58.0: Safeguard pre legacy player_name="3" (DMM) a "4" (DVB
-		# OE>=2.5) z predchádzajúcich verzií. Settings.xml v 0.58.0 zobrazuje
-		# len Default/gstplayer/exteplayer3:
-		#   - DVB chain (stype=1) nefunguje cez TVH plugin proxy URL — native
-		#     eDVBService expect MPEG-TS s validnými DVB tabuľkami, ale proxy
-		#     stream re-buffers a mení timing → playback zlyhá s "no PIDs".
-		#   - DMM player (stype=8193) je špecifický pre Dreambox boxy a nie je
-		#     bežný v cieľovej user base TVH plugin-u (väčšina má Vu+/Octagon/
-		#     Zgemma s OpenATV/OpenPLi a štandardný GST stack).
-		#
-		# Stored value mohla zostať z minulosti — force-reset na "0" (Default).
+		# 0.72.0: player_name="3" (resp. legacy "4") = "DVB (OE>=2.5)".
+		# Framework nepozná náš DVB index spoľahlivo (jeho 3=DMM/8193), preto
+		# mu pre generovanie dáme bezpečný základ exteplayer3 (5002) — vzniknú
+		# čisté riadky s Playlive proxy URL. Skutočný prepis na typ 1 + priamu
+		# TVH URL spraví refresh_bouquet -> _rewrite_bouquets_to_dvb (triggeruje
+		# sa podľa uloženej hodnoty player_name=3/4, nie podľa tejto lokálnej).
 		if str(self.player_name) in ('3', '4'):
 			try:
-				bxeg.cp.log_info('[Tvheadend.bouquet] player_name="%s" nie je '
-				                 'podporovaný v 0.58.0+ — force-reset na '
-				                 'Default (4097)' % self.player_name)
+				bxeg.cp.log_info('[Tvheadend.bouquet] player_name="%s" (DVB) — '
+				                 'framework base = exteplayer3, refs sa prepíšu '
+				                 'na native DVB (typ 1 + priama URL)'
+				                 % self.player_name)
 			except Exception:
 				pass
-			self.player_name = '0'
+			self.player_name = '2'
 
 		# FIX 0.57.0: install picon download patch (idempotent, runs once)
 		try:
@@ -994,6 +990,15 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 			except Exception as e:
 				self._log("refresh_bouquet: _fix_radio_bouquet_filenames raised: %s" % e)
 
+			# 0.72.0: ak je vybraný player "DVB (OE>=2.5)" (player_name=3,
+			# resp. legacy 4), prepíš service refs (typ 1 + priama TVH URL)
+			# PRED remap picons, aby picon mená (1_0_1_...) sedeli.
+			try:
+				if str(self.get_setting('player_name')) in ('3', '4'):
+					self._rewrite_bouquets_to_dvb()
+			except Exception as e:
+				self._log("refresh_bouquet: _rewrite_bouquets_to_dvb raised: %s" % e)
+
 			# FIX 0.59.4 (audit, Juraj): premapuj picony na bouquet service
 			# refs. Framework ukladá picon súbory s menom odvodeným z
 			# interného SID páringu (napr. 5002_0_1_100_...), ktoré NEsedí
@@ -1063,6 +1068,107 @@ class TvheadendBouquetXmlEpgGenerator(BouquetXmlEpgGenerator):
 			pass
 
 		return ret
+
+	def _rewrite_bouquets_to_dvb(self):
+		"""
+		0.72.0: Prepíše vygenerované userbouquet súbory na natívny DVB player.
+
+		Framework zapíše každý kanál ako:
+		  #SERVICE 5002:0:1:SID:TSID:ONID:NS:0:0:0:<Playlive proxy URL>:NÁZOV
+		Native DVB potrebuje:
+		  #SERVICE 1:0:1:SID:TSID:ONID:NS:0:0:0:<priama TVH URL>:NÁZOV
+
+		Menia sa LEN dve veci: typ (pole 0 -> '1') a URL (pole 10 -> priama
+		TVH URL, profil pass, ':' escapnuté na '%3a'). Polia 1-9 (SID/TSID/NS)
+		a názov ostávajú netknuté -> picon aj EPG párovanie sa zachová.
+
+		Mapovanie kanál->URL je POZIČNÉ: poradie ne-separátorových riadkov v
+		súbore zodpovedá poradiu get_bouquet_channels(channel_type). Tým sa
+		vyhneme dekódovaniu frameworkového Playlive kľúča.
+
+		POZOR: native DVB http zdroj robí BASIC auth. Server musí mať povolený
+		plain/basic ("Both plain and digest"), inak DVB chain neoverí.
+		"""
+		base = "/etc/enigma2"
+		try:
+			files = [f for f in os.listdir(base)
+			         if f.startswith('userbouquet.tvheadend_')
+			         and (f.endswith('.tv') or f.endswith('.radio'))]
+		except Exception as e:
+			self._log("_rewrite_bouquets_to_dvb: cannot list %s: %s" % (base, e))
+			return
+
+		self._log("_rewrite_bouquets_to_dvb: BASIC auth required on TVH server "
+		          "(Authentication type = Both/Plain), files=%r" % files)
+
+		total = 0
+		for fn in files:
+			channel_type = 'radio' if 'radio' in fn else 'tv'
+			path = os.path.join(base, fn)
+
+			# Priame URL v poradí (ne-separátorové kanály), profil pass.
+			urls = []
+			try:
+				for ch in self.get_bouquet_channels(channel_type):
+					if ch.get('is_separator'):
+						continue
+					urls.append(self._dvb_url_for_key(ch.get('key')))
+			except Exception as e:
+				self._log("_rewrite_bouquets_to_dvb: get_bouquet_channels(%s) "
+				          "failed: %s" % (channel_type, e))
+				continue
+
+			lines = self._read_lines(path)
+			if not lines:
+				continue
+
+			out = []
+			idx = 0
+			rewritten = 0
+			for line in lines:
+				if not line.startswith('#SERVICE '):
+					out.append(line)
+					continue
+				ref = line[len('#SERVICE '):]
+				parts = ref.split(':')
+				# marker (1:64:...) alebo FROM BOUQUET -> nechaj tak
+				if 'FROM BOUQUET' in line or (len(parts) > 1 and parts[1] == '64'):
+					out.append(line)
+					continue
+				# kanálový riadok
+				url_enc = urls[idx] if idx < len(urls) else ''
+				idx += 1
+				if not url_enc or len(parts) < 11:
+					out.append(line)   # bez URL nechaj pôvodný (typ + proxy)
+					continue
+				parts[0] = '1'          # eServiceFactoryDVB
+				parts[10] = url_enc     # priama TVH URL
+				out.append('#SERVICE ' + ':'.join(parts))
+				rewritten += 1
+
+			if idx != len(urls):
+				self._log("_rewrite_bouquets_to_dvb: %s count mismatch "
+				          "(lines=%d, channels=%d) — niektoré kanály neprepísané"
+				          % (fn, idx, len(urls)))
+
+			if rewritten and self._write_lines(path, out):
+				total += rewritten
+				self._log("_rewrite_bouquets_to_dvb: %s -> %d DVB refs" % (fn, rewritten))
+
+		self._log("_rewrite_bouquets_to_dvb: hotovo, spolu %d refs" % total)
+
+	def _dvb_url_for_key(self, channel_key):
+		"""Priama TVH URL pre kanál: profil vynútený na pass, ':' -> '%3a'."""
+		url = self._key_to_url.get(channel_key, '') if channel_key else ''
+		if not url:
+			return ''
+		# Vynúť profil pass (verifikovaný pre native demux; transcode profily
+		# môžu na HW demuxe robiť problém s PIDmi/timingom).
+		if 'profile=' in url:
+			url = re.sub(r'profile=[^&]*', 'profile=pass', url)
+		else:
+			url = url + ('&' if '?' in url else '?') + 'profile=pass'
+		return url.replace(':', '%3a')
 
 	def _cleanup_orphaned_radio_bouquets(self):
 		# FIX 0.58.6 (audit, Juraj): pri vypnutí enable_userbouquet framework

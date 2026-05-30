@@ -2212,10 +2212,23 @@ class TvheadendContentProvider(CommonContentProvider):
 			except Exception:
 				pass
 
+		# 0.72.0: ak je in-app prehrávač = DVB (inapp_player=1), vynúť native
+		# DVB player (forced_player=1) → HW demux → DVB titulky. "Default" (0)
+		# necháva frameworkový prehrávač. DVB vyžaduje BASIC auth na serveri.
+		play_settings = self._player_settings()
+		try:
+			if str(self.get_setting('inapp_player')).strip() == '1':
+				play_settings = dict(play_settings)
+				play_settings['forced_player'] = 1   # int! framework robi eServiceReference(stype,...)
+				self.log_info('[Tvheadend] live in-app: forced_player=1 '
+				              '(native DVB, DVB subtitles)')
+		except Exception:
+			pass
+
 		self.add_play(
 			play_title, url,
 			info_labels={'title': play_title},
-			settings=self._player_settings(),
+			settings=play_settings,
 			live=True,
 			download=False
 		)
@@ -2920,6 +2933,14 @@ class TvheadendContentProvider(CommonContentProvider):
 		# nad 95 %) alebo ak position je menšia ako 30s (príliš začiatok,
 		# nemá zmysel resume-ovať pár sekúnd).
 		settings = self._player_settings() or {}
+		# 0.72.0: ak je in-app prehrávač = DVB (inapp_player=1), prehraj aj DVR
+		# nahrávku cez native DVB (typ 1) → DVB titulky aj v archíve. Nahrávky
+		# z TVH sú MPEG-TS s DVB sub streammi, takže typ 1 ich vie vykresliť.
+		try:
+			if str(self.get_setting('inapp_player')).strip() == '1':
+				settings['forced_player'] = 1   # int! (viz play_live)
+		except Exception:
+			pass
 		try:
 			save_resume = self.get_setting('save_last_play_pos')
 			save_resume = bool(save_resume) if isinstance(save_resume, bool) \

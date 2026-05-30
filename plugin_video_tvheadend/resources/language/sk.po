@@ -1077,3 +1077,10 @@ msgstr "Online vyhľadať neznáme tituly na IMDb (na pozadí, opt-in)"
 
 #~ msgid "To display content, you must enter M3U playlist URL in the addon settings"
 #~ msgstr "Pre zobrazenie obsahu je potrebné zadať URL M3U playlistu v nastaveniach doplnku"
+
+
+msgid "In-app player (live + DVR)"
+msgstr "Prehrávač v doplnku (live + DVR)"
+
+msgid "DVB (OE>=2.5)"
+msgstr "DVB (OE>=2.5)"

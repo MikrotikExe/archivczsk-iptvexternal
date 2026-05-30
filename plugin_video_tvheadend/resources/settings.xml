@@ -16,6 +16,16 @@
 			 values="pass;pass|mpegts;mpegts|matroska;matroska|htsp;htsp|webtv-h264-aac-matroska;webtv-h264-aac-matroska|webtv-h264-aac-mpegts;webtv-h264-aac-mpegts" default="pass"/>
 	<setting label="Timeout (seconds)" type="text" id="loading_timeout" default="15"/>
 
+	<!-- 0.72.0: vlastny vyber prehravaca pre prehravanie priamo v doplnku
+	     (in-app) — pre LIVE kanal aj ARCHIV/DVR. "DVB (OE>=2.5)" vynuti
+	     service ref typu 1 (forced_player=1) -> HW demux -> nativne DVB
+	     titulky/teletext. "Default" = necha frameworkovy prehravac
+	     (Pouzivat prehravac). Frameworkovy "Pouzivat prehravac" doplnit o
+	     DVB nejde (framework si ho injektuje sam), preto samostatna volba.
+	     DVB vyzaduje BASIC auth na TVH serveri (Auth type = Both/Plain). -->
+	<setting label="In-app player (live + DVR)" id="inapp_player" type="enum"
+			 lvalues="Default|DVB (OE&gt;=2.5)" default="0"/>
+
 	<category label="Userbouquet">
 		<setting label="Automatically export channel list as userbouquet"
 				 id="enable_userbouquet" type="bool" default="false" />
@@ -63,9 +73,15 @@
 		<setting label="For how many days to keep Enigma2 EPG history"
 				 id="xmlepg_days" type="enum" lvalues="1|2|3|4|5|6|7|14" default="7"/>
 
-		<setting label="Player used for userbouquet"
-				 id="player_name" type="enum"
-				 lvalues="Default|gstplayer|exteplayer3" default="0"/>
+		<!-- 0.72.0: 4. volba "DVB (OE>=2.5)" (index 3) = nativny DVB player.
+		     Pri jej vybere sa kanaly v userbouquete zapisu ako service ref
+		     typu 1 (eServiceFactoryDVB) s priamou TVH stream URL namiesto
+		     Playlive proxy -> HW demux, nizsia latencia, nativne DVB titulky.
+		     POZOR: nativny DVB http zdroj robi BASIC auth. TVH server musi
+		     mat Authentication type = "Both plain and digest" (alebo "Plain"),
+		     inak DVB chain neoveri. Creds idu do userbouquetu citatelne. -->
+		<setting label="Player used for userbouquet" id="player_name" type="enum"
+				 lvalues="Default|gstplayer|exteplayer3|DVB (OE&gt;=2.5)" default="0"/>
 	</category>
 
 	<category label="Archive">
