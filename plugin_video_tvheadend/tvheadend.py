@@ -1394,12 +1394,6 @@ class Tvheadend(object):
 				except Exception:
 					pass
 
-	def htsp_invalidate(self):
-		self._htsp_meta = None
-		self._htsp_meta_ts = 0
-		self._htsp_meta_epg = None
-		self._htsp_meta_epg_ts = 0
-
 	def _htsp_meta_best(self):
 		"""Vráti najlepšie dostupné metadata z JEDNÉHO zdieľaného fetchu:
 		kanály+tagy+DVR+EPG prídu naraz v jednom HTSP spojení (server ich
@@ -1515,28 +1509,6 @@ class Tvheadend(object):
 				len(raw), len(out), skipped_state))
 		except Exception:
 			pass
-		return out
-
-	def _htsp_epg_for_channel(self, channel_uuid):
-		"""HTSP EPG eventy pre daný kanál (channel_uuid = str(channelId))."""
-		data = self.htsp_fetch_metadata(with_epg=True)
-		try:
-			cid = int(channel_uuid)
-		except Exception:
-			return []
-		out = []
-		for e in data.get('events', []):
-			if e.get('channelId') != cid:
-				continue
-			out.append({
-				'eventId': e.get('eventId'),
-				'start': e.get('start') or 0,
-				'stop': e.get('stop') or 0,
-				'title': e.get('title') or '',
-				'description': e.get('description') or e.get('summary') or '',
-				'subtitle': e.get('subtitle') or '',
-			})
-		out.sort(key=lambda x: x.get('start', 0))
 		return out
 
 	def get_tags(self):

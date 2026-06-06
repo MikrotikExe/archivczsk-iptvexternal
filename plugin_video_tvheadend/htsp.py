@@ -192,7 +192,7 @@ class HTSPClient(object):
 		s = self._send('hello', {
 			'htspversion': HTSP_PROTO_VERSION,
 			'clientname': 'archivczsk-tvheadend',
-			'clientversion': '0.72.0',
+			'clientversion': '0.80.0',
 		})
 		r = self._recv_reply(s)
 		self.server_version = r.get('htspversion')
@@ -207,11 +207,6 @@ class HTSPClient(object):
 		else:
 			s = self._send('authenticate', {'username': self.user})
 		return not self._recv_reply(s).get('noaccess')
-
-	def call(self, method, args=None):
-		"""RPC volanie so seq (preskočí async správy)."""
-		s = self._send(method, args)
-		return self._recv_reply(s)
 
 	# ---- metadata: kanály, tagy, EPG, DVR ----
 	def fetch_metadata(self, with_epg=False, timeout=None, epg_max_days=2,

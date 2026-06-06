@@ -1,4 +1,39 @@
 Tvheadend plugin pre archivCZSK
+Verzia 0.80.0 (31.5.2026)
+================================================================
+
+Zmeny:
+
+  - Interny refaktor: monoliticky provider.py (~3000 riadkov) rozdeleny
+    na zamerane moduly bez akejkolvek zmeny spravania pre uzivatela.
+    Triedny obsah (45 metod) je teraz organizovany cez mixiny:
+      * _watched_history.py  - ukladanie pozicii sledovania
+      * _common.py           - zdielane konstanty / stav / pomocne funkcie
+      * diagnostics.py       - DiagnosticsMixin (nastavenia, stav, statistiky)
+      * live.py              - LiveMixin (zive vysielanie, prehravanie kanalov)
+      * tvh_actions.py       - ActionsMixin (obnova bouquetov, picony, cache)
+      * dvr.py               - DvrMixin (archiv, kategorie, vyhladavanie, DVR)
+      * tvh_connection.py    - ConnectionMixin (login, watchdog, recovery)
+    V provider.py zostava uz len orchestracia (__init__, root, player
+    settings). provider.py: 3047 -> 271 riadkov. Az na nizsie uvedenu
+    opravu spravania funkcne identicke s 0.72.0.
+
+  - Oprava/vylepsenie: marker hviezdicky pozretych zaznamov (' *') a
+    resume pozicie (' (>> M:SS)') sa teraz zobrazuje vo VSETKYCH DVR
+    listingoch — Archiv (kanal -> 8 dni -> datum), Filmy aj Serialy
+    podla zanru, a vo Vyhladavani — nielen v Posledne sledovane.
+    Logika markerov v helperi _append_watch_markers.
+
+  - Vylepsenie: v zozname epizod konkretneho serialu sa uz nezobrazuje
+    dlhy nazov epizody (aj tak sa odrezaval) — staci identifikator
+    epizody (seria/cast) + datum vysielania + kanal. Plny nazov a popis
+    su v info paneli vpravo.
+
+  - Cistenie: odstranene 3 nevyuzite (mrtve) metody bez volania —
+    htsp_invalidate a _htsp_epg_for_channel (tvheadend.py) a HTSPClient.call
+    (htsp.py). Spolu 33 riadkov. Boli pritomne uz pred refaktorom.
+
+
 Verzia 0.72.0 (30.5.2026)
 ================================================================
 
