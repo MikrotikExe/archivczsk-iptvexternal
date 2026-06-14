@@ -1,5 +1,5 @@
 Tvheadend plugin pre archivCZSK
-Verzia 0.90.0 (vo vyvoji)
+Verzia 0.90.0 (14.06.2026)
 ================================================================
 
 Zmeny:
