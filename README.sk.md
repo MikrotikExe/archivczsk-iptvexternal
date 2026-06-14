@@ -102,7 +102,7 @@ a ponúkne update koncovým používateľom.
 ├── LICENSE                                  ← GPL-2.0 licenčný text
 ├── repo/                                    ← release ZIP-y (jeden sub-dir per addon)
 │   ├── plugin.video.tvheadend/
-│   │   └── plugin.video.tvheadend-0.72.0.zip
+│   │   └── plugin.video.tvheadend-0.90.0.zip
 │   └── plugin.video.e2m3u2bouquet/
 │       └── plugin.video.e2m3u2bouquet-0.2.1.zip
 ├── plugin_video_tvheadend/                  ← source: Tvheadend klient
