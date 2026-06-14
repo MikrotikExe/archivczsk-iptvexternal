@@ -16,14 +16,6 @@ Implementuje:
 from __future__ import absolute_import, unicode_literals, print_function
 
 
-try:
-	import lzma  # Py3
-except ImportError:
-	try:
-		from backports import lzma
-	except ImportError:
-		lzma = None
-
 from tools_archivczsk.contentprovider.provider import CommonContentProvider
 
 # FIX 0.57.0 (skyjet PR #22 review): _I je vždy dostupné v
@@ -119,6 +111,20 @@ class TvheadendContentProvider(DiagnosticsMixin, LiveMixin, ActionsMixin, DvrMix
 	# ------------------------------------------------------------------
 	# login() – volá sa automaticky pri štarte aj po zmene nastavení
 	# ------------------------------------------------------------------
+
+	def log_info(self, msg):
+		"""Stisi frameworkovy per-channel EPG export spam ('Exporting EPG
+		for channel: ...') presunom na DEBUG. Tento string loguje
+		EnigmaEpgGenerator cez cp.log_info pre KAZDY kanal pri exporte EPG
+		(stovky riadkov). Ostatne log_info spravy prejdu bez zmeny.
+		(FIX 0.90.0 — tichsi log.)
+		"""
+		try:
+			if msg.startswith('Exporting EPG for channel:'):
+				return self.log_debug(msg)
+		except Exception:
+			pass
+		return super(TvheadendContentProvider, self).log_info(msg)
 
 	def _player_settings(self):
 		return {

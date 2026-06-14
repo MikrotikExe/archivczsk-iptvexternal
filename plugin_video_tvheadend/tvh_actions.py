@@ -415,7 +415,7 @@ class ActionsMixin(object):
 		a chce ich teraz znova stiahnuť bez čakania na 1h auto-expire.
 		"""
 		try:
-			from .tvheadend import _picon_404_clear, _picon_404_count
+			from ._picons import _picon_404_clear, _picon_404_count
 			before = _picon_404_count()
 			_picon_404_clear()
 			self.add_dir(self._("✓ 404 picon cache cleared (was: %d entries)")

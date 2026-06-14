@@ -20,24 +20,6 @@ import time
 HTSP_PROTO_VERSION = 35
 HMF_MAP=1; HMF_S64=2; HMF_STR=3; HMF_BIN=4; HMF_LIST=5
 
-# TS konštanty
-PID_PAT = 0x0000
-PID_PMT = 0x1000
-PID_VIDEO = 0x0100
-PID_AUDIO = 0x0101
-STREAM_TYPE_H264 = 0x1B
-STREAM_TYPE_HEVC = 0x24
-STREAM_TYPE_MPEG2VIDEO = 0x02
-STREAM_TYPE_AAC = 0x0F  # ADTS AAC
-STREAM_TYPE_MPEG2AUDIO = 0x03
-STREAM_TYPE_AC3 = 0x81
-STREAM_TYPE_EAC3 = 0x87
-PCR_PID = PID_VIDEO
-
-# AAC sampling frequency index tabuľka (ADTS)
-AAC_FREQ_TABLE = [96000, 88200, 64000, 48000, 44100, 32000,
-                  24000, 22050, 16000, 12000, 11025, 8000, 7350]
-
 
 def _to_bytes(s):
 	return s if isinstance(s, bytes) else s.encode('utf-8')
@@ -105,7 +87,6 @@ def _deser(data, is_list=False):
 
 def deserialize(data):
 	return _deser(data, False)
-
 
 
 # ============================================================
@@ -192,7 +173,7 @@ class HTSPClient(object):
 		s = self._send('hello', {
 			'htspversion': HTSP_PROTO_VERSION,
 			'clientname': 'archivczsk-tvheadend',
-			'clientversion': '0.80.0',
+			'clientversion': '0.90.0',
 		})
 		r = self._recv_reply(s)
 		self.server_version = r.get('htspversion')

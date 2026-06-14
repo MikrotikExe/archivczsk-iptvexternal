@@ -1,4 +1,50 @@
 Tvheadend plugin pre archivCZSK
+Verzia 0.90.0 (vo vyvoji)
+================================================================
+
+Zmeny:
+
+  - Tichsi log: operacne hlasenia generovania bouquetov (Tvheadend.bouquet),
+    stahovania piconov (Tvheadend.picons) a HTSP debug su teraz na urovni
+    DEBUG namiesto INFO. Pri vypnutom debug logovani je archivCZSK.log
+    podstatne cistejsi; skutocne chyby ostavaju na urovni ERROR.
+    Aj frameworkovy per-channel EPG export log ('Exporting EPG for
+    channel: ...', stovky riadkov pri kazdom exporte) je presunuty na DEBUG.
+
+  - Interny refaktor: bouquet.py (~1620 riadkov) rozdeleny na zamerane
+    mixin moduly bez akejkolvek zmeny spravania. Trieda generatora
+    bouquetov (30 metod) je teraz organizovana cez mixiny:
+      * _bouquet_common.py  - log / nastavenia / coercion / tag-norm /
+                              pick + UTF-8 citanie a zapis suborov
+      * _bouquet_tags.py    - tag a kategorizacia kanalov (radio/TV split)
+      * _bouquet_radio.py   - manazment radio bouquetov (nazvy, cistenie)
+      * _bouquet_dvb.py     - prepis bouquetov na DVB service-ref + picon remap
+    V bouquet.py zostava uz len frameworkove rozhranie (__init__,
+    load_channel_list a 8 hookov). bouquet.py: 1620 -> 957 riadkov.
+
+  - Interny refaktor: tvheadend.py (~1613 riadkov, HTTP/HTSP API klient)
+    rozdeleny na mixiny bez zmeny spravania. Trieda Tvheadend (45 metod):
+      * _htsp_api.py     - HTSP-rezim API (metadata: kanaly/tagy/EPG/DVR)
+      * _stream_urls.py  - stavba live/DVR stream URL
+      * _data_api.py     - datove accessory (kanaly/tagy/EPG-now/DVR)
+      * _picons.py       - picon/obrazky (async download worker, 404 cache,
+                           early-abort proti OOM, icon URL, PIL konverzia)
+    V tvheadend.py zostava jadro (auth/session/URL/api_get/check_login)
+    + HTTPDigestAuthMulti. tvheadend.py: 1613 -> 543 riadkov.
+
+  - Cistenie: odstraneny mrtvy kod bez akehokolvek volania —
+    13 nepouzitych MPEG-TS/PMT konstant (PID_*, STREAM_TYPE_*, PCR_PID,
+    AAC_FREQ_TABLE) v htsp.py (pozostatok spred natívneho DVB prehravaca)
+    a nepouzity lzma import v provider.py.
+
+  - Statika cisty stav: cely addon prejde py_compile aj pyflakes bez
+    jedineho nalezu (0 nepouzitych importov/premennych/redefinicii).
+
+  (Refaktor classifier.py + jednotkove testy klasifikatora su odlozene
+  do fazy doladovania k 1.0.0 — accuracy-kriticky kod sa bezpecne
+  refaktoruje az s testami, ktore zafixuju ocakavane subzanre.)
+
+
 Verzia 0.80.0 (31.5.2026)
 ================================================================
 

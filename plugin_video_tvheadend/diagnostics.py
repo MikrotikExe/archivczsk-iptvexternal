@@ -130,7 +130,7 @@ class DiagnosticsMixin(object):
 
 			# FIX 0.48b: pocet broken-icon channels (404 cache)
 			try:
-				from .tvheadend import _picon_404_count
+				from ._picons import _picon_404_count
 				cnt = _picon_404_count()
 				if cnt > 0:
 					lines.append("◆ %s: %d" %
