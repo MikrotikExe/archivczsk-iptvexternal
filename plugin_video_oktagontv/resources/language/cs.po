@@ -1,0 +1,148 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin_video_oktagontv\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-29 05:01+0000\n"
+"PO-Revision-Date: 2026-07-28 17:40+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# hlavní menu
+#: plugin_video_oktagontv/provider.py:31
+msgid "Live broadcasts / events"
+msgstr "Živé přenosy / turnaje"
+
+#: plugin_video_oktagontv/provider.py:32
+msgid "Fights"
+msgstr "Zápasy"
+
+#: plugin_video_oktagontv/provider.py:33
+msgid "Tournaments"
+msgstr "Turnaje"
+
+#: plugin_video_oktagontv/provider.py:34
+msgid "Shows"
+msgstr "Pořady"
+
+#: plugin_video_oktagontv/provider.py:35
+msgid "Videos / recordings"
+msgstr "Videa / záznamy"
+
+#: plugin_video_oktagontv/provider.py:36
+msgid "Packages / PPV"
+msgstr "Balíčky / PPV"
+
+# katalog a přehrávání
+#: plugin_video_oktagontv/provider.py:47 plugin_video_oktagontv/provider.py:76
+#: plugin_video_oktagontv/provider.py:88
+#: plugin_video_oktagontv/provider.py:219
+#: plugin_video_oktagontv/provider.py:252
+#: plugin_video_oktagontv/provider.py:294
+msgid "Failed to load catalog from OKTAGON."
+msgstr "Nepodařilo se načíst katalog z OKTAGONu."
+
+#: plugin_video_oktagontv/provider.py:54
+msgid "Nothing found."
+msgstr "Nic se nenašlo."
+
+#: plugin_video_oktagontv/provider.py:97
+#: plugin_video_oktagontv/provider.py:149
+#: plugin_video_oktagontv/provider.py:207
+#: plugin_video_oktagontv/provider.py:224
+#: plugin_video_oktagontv/provider.py:237
+#: plugin_video_oktagontv/provider.py:256
+#: plugin_video_oktagontv/provider.py:298
+msgid "Nothing here yet."
+msgstr "Zatím tu nic není."
+
+#: plugin_video_oktagontv/provider.py:125
+msgid "Latest"
+msgstr "Nejnovější"
+
+#: plugin_video_oktagontv/provider.py:186
+msgid "All tournaments"
+msgstr "Všechny turnaje"
+
+#: plugin_video_oktagontv/provider.py:188
+msgid "Other"
+msgstr "Ostatní"
+
+#: plugin_video_oktagontv/provider.py:326
+msgid "This item is not directly playable (package/subscription)."
+msgstr "Tuto položku nelze přímo přehrát (balíček/předplatné)."
+
+#: plugin_video_oktagontv/provider.py:344
+#, python-format
+msgid "Unsupported video source: %s"
+msgstr "Nepodporovaný zdroj videa: %s"
+
+#: plugin_video_oktagontv/provider.py:357
+msgid "This content is not available (subscription/PPV needed)."
+msgstr "Tento obsah není dostupný (je potřeba předplatné/PPV)."
+
+# přihlášení
+#: plugin_video_oktagontv/oktagontv.py:234
+msgid "No username or password provided"
+msgstr "Není uvedeno uživatelské jméno ani heslo"
+
+#: plugin_video_oktagontv/oktagontv.py:253
+msgid "Login failed. Probably wrong username/password combination."
+msgstr ""
+"Přihlášení se nezdařilo. Pravděpodobně špatná kombinace uživatelského jména "
+"a hesla."
+
+#: plugin_video_oktagontv/oktagontv.py:269
+msgid "Login failed (Tivio bridge)."
+msgstr "Přihlášení se nezdařilo (přemostění do Tivia)."
+
+#: plugin_video_oktagontv/oktagontv.py:283
+msgid "Login failed (Tivio token)."
+msgstr "Přihlášení se nezdařilo (Tivio token)."
+
+#: plugin_video_oktagontv/oktagontv.py:319
+msgid "Login refresh failed. Refresh token is not valid anymore."
+msgstr "Obnovení přihlášení se nezdařilo. Obnovovací token již není platný."
+
+#: plugin_video_oktagontv/oktagontv.py:351
+msgid "Failed to get user informations"
+msgstr "Nepodařilo se získat informace o uživateli"
+
+#: plugin_video_oktagontv/oktagontv.py:449
+msgid "With your subscription you don't have access to this content."
+msgstr "S vašim předplatným nemáte k tomuto obsahu přístup."
+
+# nastavení doplňku (resources/settings.xml)
+msgid "Login name"
+msgstr "Přihlašovací jméno"
+
+msgid "Login password"
+msgstr "Přihlašovací heslo"
+
+msgid "Maximum bandwidth of the offered stream"
+msgstr "Maximální datový tok nabízeného streamu"
+
+msgid "Unlimited"
+msgstr "Bez omezení"
+
+msgid "8 Mbit/s"
+msgstr "8 Mbit/s"
+
+msgid "6 Mbit/s"
+msgstr "6 Mbit/s"
+
+msgid "4 Mbit/s"
+msgstr "4 Mbit/s"
+
+msgid "3 Mbit/s"
+msgstr "3 Mbit/s"
+
+msgid "2 Mbit/s"
+msgstr "2 Mbit/s"
+
+#~ msgid "Home"
+#~ msgstr "Domů"

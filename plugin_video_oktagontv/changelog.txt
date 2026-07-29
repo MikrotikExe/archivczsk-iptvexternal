@@ -1,0 +1,91 @@
+0.5.2: úprava menu podľa spätnej väzby
+- odstránená položka "Domov" (Tivio pre túto obrazovku nevracia žiadne riadky)
+- "Zápasy": zložky už nie sú kurzívou (skin ich kreslil inou farbou) - rovnaká
+  farba ako ostatné zložky
+- "Turnaje" sú rozdelené do sérií: OKTAGON, PML, THE RING, FABRIQ, ... + "Ostatné"
+  (série s jediným turnajom) a "Všetky turnaje" pre pôvodný súvislý zoznam;
+  v rámci série sú turnaje zoradené podľa čísla zostupne (96, 95, 94, ...)
+  - "The Ring Praha"/"The Ring Olomouc" sa zlúčia pod "THE RING"
+  - ak by vyšla len jedna séria, medzikrok sa preskočí
+- default popis "Tag description" z nepomenovaných tagov sa už nezobrazuje
+
+0.5.1: opravy po spätnej väzbe
+- ZRUŠENÉ DUPLICITY: "Zápasy" už nezobrazujú zoznam turnajov (ten je v "Turnaje"),
+  ostávajú "Najnovšie" + riadky obrazovky /sk/fights; turnaje sa doplnia len ako
+  záloha, ak sa riadky nepodarí načítať
+- farebné texty nahradené neutrálnymi ako v ostatných doplnkoch:
+  podtitul v katalógu je kurzívou (predtým žltý), neprehrateľné položky majú len " *"
+  (predtým sivý názov) - py2/py3 bezpečné
+- NOVÉ "Vyhľadať" (ako vo VOYO): hľadá v turnajoch, reláciách, menách bojovníkov
+  (tagy organizácie) aj v názvoch najnovších videí; porovnáva bez diakritiky a
+  bez ohľadu na veľkosť písmen (OKTAGON nemá verejný vyhľadávací endpoint,
+  filtruje sa na strane doplnku)
+- nepomenované tagy z Tivia (default názov "Tag" / "Tag description") sa už
+  v zoznamoch nezobrazujú
+- do logu pribudol počet položiek obrazovky (diagnostika prázdneho "Domov")
+
+0.5.0: audit podľa nového HAR-u (28.7.2026) - navigácia ako na webe
+- NOVÉ "Domov": obrazovka webu (screens -> rows -> dlaždice) cez Tivio getRowsInScreen3
+- NOVÉ "Turnaje": všetky turnaje (OKTAGON 92, 91, 90, ...), nielen tie nadchádzajúce
+  - web ich číta ako tagy typu tagTypes/JW171vftakPSYzzVl7LW -> rovnaký dopyt teraz robí doplnok
+  - predtým sa dalo otvoriť len 5 budúcich turnajov z /banners, ktoré ešte nemajú videá
+    (preto boli Zápasy prázdne)
+- "Zápasy" majú tri cesty ku konkrétnym zápasom:
+    1. riadky obrazovky /sk/fights (screen-UUal-pc3NL1T9fwTiupn9), presne ako web
+    2. "Najnovšie" - najnovšie publikované videá organizácie priamo z Firestore
+       (nezávislé na Tivio cloud funkciách)
+    3. zoznam turnajov -> zápasy konkrétneho turnaja
+- pri zápasoch sa zobrazuje aj dĺžka a rok (duration/created z Tivia)
+- "Relácie/Pořady" sa berú z riadku row-CBNuWIfjpCKTMflELreLN (presne ako web),
+  záloha zostáva pôvodný filter show_tag
+- dopyt na videá podľa tagu je teraz 1:1 zhodný s dopytom webu (organizationRef +
+  transcodingStatus + publishedStatus + tags ARRAY_CONTAINS_ANY, orderBy created DESC),
+  takže má vo Firestore zaručene existujúci index; ostávajú 2 zálohy
+- stránkovanie (Ďalšie) v obrazovkách aj riadkoch
+- preklady: Domov / Turnaje (sk aj cs)
+
+0.4.1: oprava relácií + kompatibilita Python 2
+- Relácie: filtrujú sa priamo tagy typu "show_tag" (predtým sa vypísali všetky tagy
+  vrátane bojovníkov, napr. "Roman Kracík")
+- kód overený na kompatibilitu s Pythonom 2 aj 3 (staršie prijímače)
+- opravená py2 chyba: chybová hláška s diakritikou spadla na str() -> pridaný error_text()
+- popisy sa čistia cez clean_html z frameworku (rieši aj HTML entity a <br>)
+
+0.4.0: Zápasy a Relácie (Pořady)
+- nové menu "Zápasy": turnaje -> jednotlivé zápasy (videá s tagom turnaja, eventTagId)
+- nové menu "Relácie/Pořady": relácie -> epizódy (tagy organizácie v Tiviu)
+- zápasy/epizódy sa čítajú z Tivio Firestore (rovnaký model ako seriály v JOJ Play)
+- doplnené preklady pre nové položky
+- POZN.: bez odchyteného HAR-u týchto sekcií ide o implementáciu podľa dátového modelu Tivia,
+  do logu sa vypisujú nájdené typy tagov, aby sa dal zoznam relácií doladiť
+
+0.3.0: SK/CZ preklady
+- pridané preklady sk + cs (resources/language/../LC_MESSAGES/plugin.video.oktagontv.mo)
+- priložené aj zdrojové .po súbory pre ďalšie úpravy
+- terminológia zjednotená s ostatnými doplnkami repozitára
+- vyčistené nastavenia: odstránené nepoužívané voľby (výber profilu, sync prehrávania, HLS multiaudio)
+
+0.2.4: YouTube promo videá
+- video_source_type=YOUTUBE sa prehrá cez doplnok plugin.video.yt (predtým "Unsupported video source")
+- POTVRDENÉ funkčné na prijímači: login, katalóg aj prehrávanie TIVIO videí (VOD) bez DRM
+
+0.2.3: prehrávanie funguje
+- doplnené get_dash_info/get_hls_info (DASH/HLS proxy) - predtým AttributeError pri prehrávaní
+- streamy sú čisté (bez Widevine DRM) - overené na reálnom evente
+- presnejšia chybová hláška (napr. budúci event = zatiaľ bez streamu)
+
+0.2.2: oprava výmeny tokenu
+- verifyCustomToken teraz posiela aj tenantId (predtým TENANT_ID_MISMATCH)
+
+0.2.1: oprava premostenia do Tivio
+- signInWithTenant teraz posiela aj tenantId (predtým "Tenant (undefined)")
+- ikona OKTAGON
+
+0.2.0: reálna architektúra z HAR
+- 3-krokový login OKTAGON -> Tivio (signInWithPassword -> signInWithTenant -> verifyCustomToken)
+- doplnené reálne identifikátory (ORGANIZATION_ID, API kľúče, tenant)
+- katalóg z verejného api.oktagonmma.com/v1/banners (STREAM/VIDEO/BUNDLE)
+- prehrávanie cez Tivio getSourceUrl (videoSource)
+- CHÝBA: potvrdenie DRM (Widevine) a plná navigácia Turnaje/Zápasy/Pořady -> treba 2. HAR
+
+0.1.0: prvá kostra postavená na Tivio klientovi (JOJ Play)
