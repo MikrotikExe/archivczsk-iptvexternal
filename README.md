@@ -7,7 +7,8 @@ Enigma2 plugin.
 
 Adds support for external IPTV sources (Tvheadend server, M3U playlist) by
 generating Enigma2 userbouquets and injecting EPG so channels appear
-natively in the Enigma2 channel list.
+natively in the Enigma2 channel list, and hosts streaming service clients
+that are maintained outside the official addon repository (OKTAGON.tv).
 
 ## Addons in this repository
 
@@ -45,6 +46,21 @@ M3U source:
 - Optional Tvheadend integration (channel enrichment via the TVH API)
 - Auto-refresh of playlist and EPG on configurable intervals (4h, 8h, 24h, 2d, 7d)
 
+### 🥊 plugin.video.oktagontv — OKTAGON.tv
+
+Client for [OKTAGON.tv](https://oktagon.tv/) (OKTAGON MMA), which runs on the
+Tivio / Streamonline platform:
+
+- Login with an OKTAGON.tv account (3-step login OKTAGON → Tivio)
+- Live events, tournaments (grouped into series), fights, shows, recordings and
+  PPV packages
+- Search across tournaments, shows, fighters and video titles (client side —
+  OKTAGON has no public search endpoint)
+- Playback through the DASH/HLS proxy (streams are DRM free), YouTube promo
+  videos are handed over to `plugin.video.yt`
+- Runs on Python 2 and 3 (older images)
+- Localisation: 🇸🇰 Slovak, 🇨🇿 Czech, 🇬🇧 English
+
 ## Installing in ArchivCZSK
 
 In the ArchivCZSK GUI, open repository management and add the URL of this
@@ -53,8 +69,9 @@ officially available in ArchivCZSK.
 
 ## Development and releases
 
-Source code for both addons lives in `plugin_video_tvheadend/` and
-`plugin_video_e2m3u2bouquet/`.
+Source code of every addon lives in its own top level directory:
+`plugin_video_tvheadend/`, `plugin_video_e2m3u2bouquet/` and
+`plugin_video_oktagontv/`.
 
 ### Adding new localisation strings
 
@@ -104,8 +121,11 @@ GitHub and offers the update to end users.
 ├── repo/                                    ← release ZIPs (one sub-dir per addon)
 │   ├── plugin.video.tvheadend/
 │   │   └── plugin.video.tvheadend-0.90.0.zip
+│   ├── plugin.video.oktagontv/
+│   │   └── plugin.video.oktagontv-0.5.3.zip
 │   └── plugin.video.e2m3u2bouquet/
 │       └── plugin.video.e2m3u2bouquet-0.2.1.zip
+├── plugin_video_oktagontv/                  ← source: OKTAGON.tv client
 ├── plugin_video_tvheadend/                  ← source: Tvheadend client
 └── plugin_video_e2m3u2bouquet/              ← source: M3U to Bouquet
 ```
@@ -131,7 +151,9 @@ plugin_video_e2m3u2bouquet/
 This repository hosts addons that connect external IPTV sources
 (Tvheadend server, M3U playlist) to Enigma2 through the ArchivCZSK
 framework and auto-generate userbouquets so channels show up in the
-Enigma2 channel list. Originally proposed as a PR to the official
+Enigma2 channel list, plus clients for streaming services that are not
+part of the official addon repository (currently the OKTAGON.tv / OKTAGON
+MMA client). Originally proposed as a PR to the official
 [`archivczsk/archivczsk-doplnky`](https://github.com/archivczsk/archivczsk-doplnky)
 repository — after review with the ArchivCZSK maintainer
 ([@skyjet18](https://github.com/skyjet18)) we agreed to keep them in

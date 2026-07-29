@@ -7,7 +7,8 @@ Enigma2 plugin.
 
 Pridáva podporu externých IPTV zdrojov (Tvheadend server, M3U playlist)
 generovaním Enigma2 userbouquetov a injektovaním EPG, takže kanály sa
-zobrazia natívne v zozname kanálov Enigma2.
+zobrazia natívne v zozname kanálov Enigma2, a obsahuje aj doplnky
+streamovacích služieb, ktoré nie sú v oficiálnom repe (OKTAGON.tv).
 
 ## Doplnky v tomto repe
 
@@ -45,6 +46,21 @@ M3U zdrojom:
 - Voliteľná Tvheadend integrácia (obohatenie kanálov cez TVH API)
 - Auto-refresh playlistu a EPG na nastaviteľné intervaly (4h, 8h, 24h, 2d, 7d)
 
+### 🥊 plugin.video.oktagontv — OKTAGON.tv
+
+Klient pre [OKTAGON.tv](https://oktagon.tv/sk/) (OKTAGON MMA), ktorý beží na
+platforme Tivio / Streamonline:
+
+- Prihlásenie účtom OKTAGON.tv (3-krokový login OKTAGON → Tivio)
+- Živé prenosy, turnaje (zoskupené do sérií), zápasy, relácie, záznamy
+  a PPV balíčky
+- Vyhľadávanie v turnajoch, reláciách, menách bojovníkov aj v názvoch videí
+  (na strane doplnku — OKTAGON nemá verejný vyhľadávací endpoint)
+- Prehrávanie cez DASH/HLS proxy (streamy sú bez DRM), YouTube promo videá
+  sa prehrajú cez `plugin.video.yt`
+- Beží na Pythone 2 aj 3 (staršie image)
+- Lokalizácia: 🇸🇰 slovenčina, 🇨🇿 čeština, 🇬🇧 angličtina
+
 ## Inštalácia v ArchivCZSK
 
 V ArchivCZSK GUI prejdi na správu repozitárov a pridaj URL tohto repa.
@@ -52,8 +68,9 @@ Podrobný postup sa doplní keď bude funkcia oficiálne dostupná v ArchivCZSK.
 
 ## Vývoj a vydávanie nových verzií
 
-Source code oboch doplnkov je v adresároch `plugin_video_tvheadend/` a
-`plugin_video_e2m3u2bouquet/`.
+Source code každého doplnku je vo vlastnom adresári v koreni repa:
+`plugin_video_tvheadend/`, `plugin_video_e2m3u2bouquet/` a
+`plugin_video_oktagontv/`.
 
 ### Pridanie nových lokalizačných stringov
 
@@ -103,8 +120,11 @@ a ponúkne update koncovým používateľom.
 ├── repo/                                    ← release ZIP-y (jeden sub-dir per addon)
 │   ├── plugin.video.tvheadend/
 │   │   └── plugin.video.tvheadend-0.90.0.zip
+│   ├── plugin.video.oktagontv/
+│   │   └── plugin.video.oktagontv-0.5.3.zip
 │   └── plugin.video.e2m3u2bouquet/
 │       └── plugin.video.e2m3u2bouquet-0.2.1.zip
+├── plugin_video_oktagontv/                  ← source: klient OKTAGON.tv
 ├── plugin_video_tvheadend/                  ← source: Tvheadend klient
 └── plugin_video_e2m3u2bouquet/              ← source: M3U to Bouquet
 ```
@@ -130,7 +150,9 @@ plugin_video_e2m3u2bouquet/
 Tento repozitár obsahuje doplnky ktoré napájajú externé IPTV zdroje
 (Tvheadend server, M3U playlist) do Enigma2 cez ArchivCZSK framework
 a automaticky generujú userbouquety pre prehliadanie v Enigma2 channel
-liste. Pôvodne navrhnuté ako PR do oficiálneho
+liste, a tiež doplnky streamovacích služieb, ktoré nie sú súčasťou
+oficiálneho repa (zatiaľ klient OKTAGON.tv / OKTAGON MMA).
+Pôvodne navrhnuté ako PR do oficiálneho
 [`archivczsk/archivczsk-doplnky`](https://github.com/archivczsk/archivczsk-doplnky)
 repa — po review-i sme sa s autorom ArchivCZSK
 ([@skyjet18](https://github.com/skyjet18)) dohodli že pluginy budú
