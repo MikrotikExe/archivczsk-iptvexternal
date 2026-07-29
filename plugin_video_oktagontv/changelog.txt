@@ -1,3 +1,5 @@
+0.5.3: README.md presunuté mimo doplnku (ostatné doplnky v repe ho tiež nemajú)
+
 0.5.2: úprava menu podľa spätnej väzby
 - odstránená položka "Domov" (Tivio pre túto obrazovku nevracia žiadne riadky)
 - "Zápasy": zložky už nie sú kurzívou (skin ich kreslil inou farbou) - rovnaká
