@@ -1305,6 +1305,9 @@ class OktagonTV(object):
 
 	# ##################################################################################################################
 
+	def get_video_source_info(self, video_id, video_type='video'):
+		return self.client.get_video_source_info(video_id, video_type)
+
 	def get_video_source_url(self, video_id, video_type='video'):
 		return self.client.get_video_source_url(video_id, video_type)
 

@@ -1,3 +1,8 @@
+0.5.7: oprava 0.5.6 - chýbajúca metóda get_video_source_info
+- v 0.5.6 bola nová metóda pridaná len do nízkoúrovňového klienta, nie do triedy,
+  ktorú volá menu -> prehrávanie končilo hláškou
+  "'OktagonTV' object has no attribute 'get_video_source_info'"
+
 0.5.6: živý prenos ide priamo do prehrávača (oprava čiernej obrazovky)
 - z logu prijímača je konečne vidieť celú odpoveď getSourceUrl: pri živom evente je to
   dynamický manifest so sessionId a parametrom ?start=<začiatok eventu>, plus v poli
