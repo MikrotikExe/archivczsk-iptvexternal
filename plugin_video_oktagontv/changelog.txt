@@ -1,3 +1,13 @@
+0.5.9: živý prenos cez proxy - výber kvality a stabilnejší obraz
+- pri živom evente doplnok teraz žiada od Tivia HLS (poradie capabilities rozhoduje,
+  overené na Tvheadend skripte) - z HLS master playlistu vie proxy vybrať konkrétnu
+  kvalitu (360p / 720p / 1080p) aj správnu zvukovú stopu, čo pri DASH manifeste nešlo
+- z URL manifestu sa odstraňuje parameter ?start= (timeshift od začiatku prenosu),
+  ktorý spôsoboval nemonotónne časové značky - kockovanie obrazu a výpadky zvuku;
+  pairingId zostáva, inak CDN vráti 401
+- v zozname sú najprv jednotlivé kvality cez proxy, pod nimi priamy stream a živá hrana
+  ako záloha
+
 0.5.8: správna jazyková verzia živého prenosu (predtým hral nemecký komentár)
 - z HAR-u webu (1.8.2026) je vidieť, že prehliadač posiela do getSourceUrl aj polia
   "language", "platform" a "deviceId" a hlási všetky štyri kombinácie capabilities

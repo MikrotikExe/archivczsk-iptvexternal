@@ -362,9 +362,14 @@ class OktagonTVContentProvider(CommonContentProvider):
 		attempts = 3 if live else 1
 		tried = []
 
+		# Pri živých prenosoch žiadame HLS (poradie capabilities rozhoduje) - z DASH
+		# manifestu sa dá prehrať len tak, ako ho poslal Tivio, kým z HLS master
+		# playlistu vieme cez proxy vybrať konkrétnu kvalitu aj českú zvukovú stopu.
+		protocol = 'hls' if live else None
+
 		for attempt in range(attempts):
 			try:
-				info = self.oktagontv.get_video_source_info(video_source, video_type) or {}
+				info = self.oktagontv.get_video_source_info(video_source, video_type, protocol) or {}
 			except Exception as e:
 				msg = error_text(e)
 				self.log_error("getSourceUrl failed: %s" % msg)
@@ -382,10 +387,11 @@ class OktagonTVContentProvider(CommonContentProvider):
 			tried.append(url)
 
 			if live:
-				# Živý stream: manifest je dynamický, segmenty majú v URL query parameter
-				# (?start=...) a proxy si s tým neporadí - prehrávač skončil na čiernej
-				# obrazovke / EOF. Preto ideme priamo do prehrávača (exteplayer3 + ffmpeg
-				# zvládne MPEG-DASH sám) a proxy necháme len ako ďalšiu možnosť.
+				# Parameter ?start= je timeshift od začiatku prenosu - prehrávač z neho
+				# dostával nemonotónne časové značky (kockovanie, výpadky zvuku).
+				# Bez neho ide stream zo živej hrany. pairingId musí zostať.
+				url = _live_edge_url(url)
+
 				if not self._manifest_available(url):
 					continue
 
@@ -424,21 +430,24 @@ class OktagonTVContentProvider(CommonContentProvider):
 	# ##################################################################################################################
 
 	def add_live_streams(self, url, source_history, title):
-		# 1) priamo manifest so session (prehráva od začiatku prenosu)
-		self.add_play(title, url, info_labels={'quality': 'auto'}, live=True)
-
-		# 2) živá hrana - ten istý stream bez session a bez ?start (zo sourceHistory)
-		for source_url in source_history:
-			if source_url and source_url != url:
-				self.add_play('%s  %s' % (title, _I(self._("(live edge)"))), source_url,
-				              info_labels={'quality': 'auto'}, live=True)
-
-		# 3) a nakoniec cez proxy s výberom kvality (keby priamy manifest nešiel)
+		# 1) cez proxy - master playlist sa prefiltruje na zvolenú kvalitu (+ česká stopa)
+		proxy_ok = False
 		try:
-			self.resolve_streams(url, '%s  %s' % (title, _I(self._("(via proxy)"))), True)
+			proxy_ok = self.resolve_streams(url, title, True)
 		except Exception as e:
 			self.log_error("Failed to load stream manifest: %s" % error_text(e))
 
+		# 2) priamo manifest - keby proxy zlyhala, nech je stále čo prehrať
+		self.add_play('%s  %s' % (title, self._("(direct stream)")), url,
+		              info_labels={'quality': 'auto'}, live=True)
+
+		# 3) živá hrana - ten istý stream bez session (zo sourceHistory)
+		for source_url in source_history:
+			if source_url and source_url != url:
+				self.add_play('%s  %s' % (title, self._("(live edge)")), source_url,
+				              info_labels={'quality': 'auto'}, live=True)
+
+		self.log_info("Live streams added, proxy variants: %s" % ('yes' if proxy_ok else 'no'))
 		return True
 
 	# ##################################################################################################################
@@ -461,7 +470,11 @@ class OktagonTVContentProvider(CommonContentProvider):
 				return False
 			for s in streams:
 				url = stream_key_to_hls_url(self.http_endpoint, {'url': s['playlist_url'], 'bandwidth': s['bandwidth']})
-				self.add_play(title, url, info_labels={'bandwidth': int(s['bandwidth'])}, live=live)
+				info_labels = {'bandwidth': int(s['bandwidth'])}
+				height = _resolution_height(s.get('resolution'))
+				if height:
+					info_labels['quality'] = height + 'p'
+				self.add_play(title, url, info_labels=info_labels, live=live)
 		else:
 			streams = self.get_dash_streams(manifest_url, self.oktagontv.client.req_session, max_bitrate=self.get_setting('max_bitrate'))
 			if not streams:
@@ -473,6 +486,29 @@ class OktagonTVContentProvider(CommonContentProvider):
 				self.add_play(title, url, info_labels=info_labels, live=live)
 
 		return True
+
+
+# ##################################################################################################################
+# Pomocníci pre živé prenosy
+# ##################################################################################################################
+
+def _live_edge_url(url):
+	"""
+	Odreže z URL manifestu parameter start= (timeshift od začiatku prenosu).
+	Ostatné parametre (napr. pairingId) musia zostať, inak CDN vráti 401.
+	"""
+	if not url or '?' not in url:
+		return url
+
+	base, _, query = url.partition('?')
+	keep = [p for p in query.split('&') if p and not p.startswith('start=')]
+	return base + ('?' + '&'.join(keep) if keep else '')
+
+
+def _resolution_height(resolution):
+	# "1920x1080" -> "1080"
+	m = re.search(r'x(\d+)', resolution or '')
+	return m.group(1) if m else None
 
 
 # ##################################################################################################################

@@ -812,7 +812,24 @@ class OktagonTVClient(object):
 
 		return device_id
 
-	def get_video_source_info(self, video_id, video_type='video'):
+	# poradie schopností rozhoduje, aký protokol Tivio vráti - prvý vyhovujúci vyhráva
+	CAPABILITIES = [
+		{"codec": "h264", "protocol": "dash", "encryption": "none"},
+		{"codec": "h264", "protocol": "dash", "encryption": "widevine"},
+		{"codec": "h264", "protocol": "dash", "encryption": "playready"},
+		{"codec": "h264", "protocol": "hls", "encryption": "none"},
+	]
+
+	def get_capabilities(self, protocol=None):
+		if not protocol:
+			return list(self.CAPABILITIES)
+
+		# požadovaný protokol dopredu, zvyšok necháme ako záložné možnosti
+		# (užší zoznam vracal iný zdroj, preto sa nič nevyhadzuje)
+		return [c for c in self.CAPABILITIES if c['protocol'] == protocol] + \
+		       [c for c in self.CAPABILITIES if c['protocol'] != protocol]
+
+	def get_video_source_info(self, video_id, video_type='video', protocol=None):
 		# Telo požiadavky je 1:1 to, čo posiela web (overené z HAR-u 1.8.2026).
 		#
 		# KĽÚČOVÉ je pole "language": OKTAGON vysiela event paralelne vo viacerých
@@ -830,25 +847,20 @@ class OktagonTVClient(object):
 			"language": self.LANGUAGE,
 			"platform": "WEB",
 			"deviceId": self.get_device_id(),
-			"capabilities": [
-				{"codec": "h264", "protocol": "dash", "encryption": "none"},
-				{"codec": "h264", "protocol": "dash", "encryption": "widevine"},
-				{"codec": "h264", "protocol": "dash", "encryption": "playready"},
-				{"codec": "h264", "protocol": "hls", "encryption": "none"},
-			]
+			"capabilities": self.get_capabilities(protocol)
 		}
 		result = self.call_tivio_api('getSourceUrl', data) or {}
 
 		# diagnostika: pri živých eventoch Tivio vracia rôzne zdroje, nech je v logu vidieť celú odpoveď
 		try:
-			self.cp.log_info("getSourceUrl(%s, %s) -> %s" % (video_id, video_type, json.dumps(result)[:800]))
+			self.cp.log_info("getSourceUrl(%s, %s, %s) -> %s" % (video_id, video_type, protocol or 'default', json.dumps(result)[:800]))
 		except Exception:
 			pass
 
 		return result
 
-	def get_video_source_url(self, video_id, video_type='video'):
-		return self.get_video_source_info(video_id, video_type)['url']
+	def get_video_source_url(self, video_id, video_type='video', protocol=None):
+		return self.get_video_source_info(video_id, video_type, protocol)['url']
 
 	# ##################################################################################################################
 
@@ -1330,11 +1342,11 @@ class OktagonTV(object):
 
 	# ##################################################################################################################
 
-	def get_video_source_info(self, video_id, video_type='video'):
-		return self.client.get_video_source_info(video_id, video_type)
+	def get_video_source_info(self, video_id, video_type='video', protocol=None):
+		return self.client.get_video_source_info(video_id, video_type, protocol)
 
-	def get_video_source_url(self, video_id, video_type='video'):
-		return self.client.get_video_source_url(video_id, video_type)
+	def get_video_source_url(self, video_id, video_type='video', protocol=None):
+		return self.client.get_video_source_url(video_id, video_type, protocol)
 
 	def get_document(self, path, org_root=False):
 		ret = self.client.load_document(path, org_root)
