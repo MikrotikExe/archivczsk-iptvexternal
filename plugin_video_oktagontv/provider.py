@@ -5,7 +5,8 @@ from tools_archivczsk.http_handler.hls import stream_key_to_hls_url
 from tools_archivczsk.http_handler.dash import stream_key_to_dash_url
 
 import re
-from time import time
+from time import time, strftime, localtime
+from tools_archivczsk.date_utils import iso8601_to_timestamp
 from .oktagontv import OktagonTV, error_text
 from .oktagon_api import OktagonApi
 
@@ -344,6 +345,13 @@ class OktagonTVContentProvider(CommonContentProvider):
 			self.show_error(self._("Unsupported video source: %s") % vst)
 			return
 
+		# Živý prenos pred svojím začiatkom na Tivio CDN ešte neexistuje - manifest vráti HTTP 500.
+		# Nemá zmysel to skúšať, radšej rovno povedzme, kedy prenos začína.
+		start_ts = _start_timestamp(item)
+		if start_ts and start_ts > time() + 60:
+			self.show_info(self._("The broadcast hasn't started yet. It starts at %s.") % strftime('%d.%m.%Y %H:%M', localtime(start_ts)), noexit=True)
+			return
+
 		# STREAM = živý event, VIDEO = záznam. Tivio documentType:
 		# TODO(oktagon): over presný typ z getSourceUrl (video vs tvChannel vs event).
 		video_type = 'video'
@@ -358,7 +366,18 @@ class OktagonTVContentProvider(CommonContentProvider):
 			return
 
 		self.log_debug("Resolved OKTAGON stream URL: %s" % url)
-		return self.resolve_streams(url, item['title'])
+
+		try:
+			ret = self.resolve_streams(url, item['title'])
+		except Exception as e:
+			# napr. HTTP 500 z live.streaming.tivio.studio, keď prenos ešte nebeží
+			self.log_error("Failed to load stream manifest: %s" % error_text(e))
+			ret = False
+
+		if not ret:
+			self.show_error(self._("Stream is not available - the broadcast probably hasn't started yet."))
+
+		return ret
 
 	# ##################################################################################################################
 
@@ -466,6 +485,19 @@ def _group_tournaments(items):
 		ret.append((OTHER_GROUP_KEY, None, sorted(singles, key=_tournament_sort_key)))
 
 	return ret
+
+# ##################################################################################################################
+
+def _start_timestamp(item):
+	# začiatok eventu z katalógu OKTAGONu (napr. "2026-08-01T15:40:00.000Z") ako UTC timestamp
+	start_date = item.get('start_date')
+	if not start_date:
+		return None
+
+	try:
+		return iso8601_to_timestamp(start_date, True)
+	except Exception:
+		return None
 
 # ##################################################################################################################
 

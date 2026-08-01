@@ -144,5 +144,11 @@ msgstr "3 Mbit/s"
 msgid "2 Mbit/s"
 msgstr "2 Mbit/s"
 
+msgid "The broadcast hasn't started yet. It starts at %s."
+msgstr "Prenos ešte nezačal. Začína o %s."
+
+msgid "Stream is not available - the broadcast probably hasn't started yet."
+msgstr "Stream nie je dostupný - prenos zrejme ešte nezačal."
+
 #~ msgid "Home"
 #~ msgstr "Domov"

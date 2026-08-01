@@ -1,3 +1,8 @@
+0.5.4: zrozumiteľná hláška pri živých prenosoch
+- ak sa event pokúsiš pustiť pred jeho začiatkom, doplnok rovno napíše, kedy prenos
+  začína (predtým skončil chybou - Tivio CDN pre ešte nespustený prenos vracia HTTP 500)
+- ak sa stream nepodarí načítať, zobrazí sa hláška namiesto prázdneho zoznamu
+
 0.5.3: README.md presunuté mimo doplnku (ostatné doplnky v repe ho tiež nemajú)
 
 0.5.2: úprava menu podľa spätnej väzby
