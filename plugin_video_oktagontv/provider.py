@@ -441,11 +441,11 @@ class OktagonTVContentProvider(CommonContentProvider):
 		self.add_play('%s  %s' % (title, self._("(direct stream)")), url,
 		              info_labels={'quality': 'auto'}, live=True)
 
-		# 3) živá hrana - ten istý stream bez session (zo sourceHistory)
-		for source_url in source_history:
-			if source_url and source_url != url:
-				self.add_play('%s  %s' % (title, self._("(live edge)")), source_url,
-				              info_labels={'quality': 'auto'}, live=True)
+		# sourceHistory (ten istý stream bez sessionId) sa do zoznamu nedáva:
+		# master playlist síce vráti HTTP 200, ale segmenty už bez session CDN odmietne
+		# a prehrávač skončí okamžite na EOF (overené na živom prenose 1.8.2026).
+		for source_url in source_history or []:
+			self.log_debug("Ignoring session-less live source (segments return 401): %s" % source_url)
 
 		self.log_info("Live streams added, proxy variants: %s" % ('yes' if proxy_ok else 'no'))
 		return True
