@@ -1,3 +1,18 @@
+0.5.6: živý prenos ide priamo do prehrávača (oprava čiernej obrazovky)
+- z logu prijímača je konečne vidieť celú odpoveď getSourceUrl: pri živom evente je to
+  dynamický manifest so sessionId a parametrom ?start=<začiatok eventu>, plus v poli
+  sourceHistory ten istý stream bez session (živá hrana)
+- proxy si s takým streamom neporadila (segmenty majú v URL query parameter) - prehrávač
+  skončil na čiernej obrazovke, resp. hneď na EOF
+- živý prenos sa preto teraz posiela priamo prehrávaču (exteplayer3 + ffmpeg zvládne
+  MPEG-DASH sám); v zozname streamov pribudli:
+    1. samotný prenos (od začiatku eventu)
+    2. "(živá hrana)" - stream bez posunu, zo sourceHistory
+    3. "(cez proxy)" - pôvodná cesta s výberom kvality, keby prvé dve nešli
+- pred prehratím sa overí, či zdroj naozaj vysiela (nefunkčný vracia HTTP 500) - ak nie,
+  doplnok si vypýta od Tivia ďalší zdroj
+- záznamy (VOD) sa prehrávajú ako doteraz cez proxy s výberom kvality
+
 0.5.5: živé prenosy - viac pokusov o funkčný zdroj
 - porovnanie HAR-u z prehliadača (1.8.2026) s logom prijímača ukázalo, že Tivio pri
   živom evente nevracia vždy ten istý zdroj: prehliadaču dalo bežiaci zdroj

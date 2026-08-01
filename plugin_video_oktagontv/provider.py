@@ -357,16 +357,14 @@ class OktagonTVContentProvider(CommonContentProvider):
 		video_type = 'video'
 		live = item.get('type') == 'STREAM'
 
-		# Pri živých eventoch Tivio nevracia vždy ten istý zdroj - porovnanie HAR-u (1.8.2026)
-		# s logom prijímača ukázalo, že prehliadaču vráti bežiaci zdroj (id = video_source),
-		# doplnku pri každom volaní iný, ktorý ešte nevysiela (manifest = HTTP 500).
-		# Preto pri live skúsime getSourceUrl viackrát, kým nedostaneme funkčný manifest.
+		# Pri živých eventoch Tivio vracia zakaždým nový zdroj (sessionId) a niekedy taký,
+		# ktorý ešte nevysiela (manifest = HTTP 500). Preto to pri live skúsime viackrát.
 		attempts = 3 if live else 1
 		tried = []
 
 		for attempt in range(attempts):
 			try:
-				url = self.oktagontv.get_video_source_url(video_source, video_type)
+				info = self.oktagontv.get_video_source_info(video_source, video_type) or {}
 			except Exception as e:
 				msg = error_text(e)
 				self.log_error("getSourceUrl failed: %s" % msg)
@@ -374,26 +372,74 @@ class OktagonTVContentProvider(CommonContentProvider):
 				self.show_error(msg or self._("This content is not available (subscription/PPV needed)."))
 				return
 
+			url = info.get('url')
 			self.log_info("OKTAGON stream URL (%d/%d): %s" % (attempt + 1, attempts, url))
 
-			if url in tried:
+			if not url or url in tried:
 				# ten istý zdroj, ktorý pred chvíľou nefungoval - netreba znova
 				continue
 
 			tried.append(url)
 
-			try:
-				ret = self.resolve_streams(url, item['title'], live)
-			except Exception as e:
-				# napr. HTTP 500 z live.streaming.tivio.studio, keď zdroj ešte nevysiela
-				self.log_error("Failed to load stream manifest: %s" % error_text(e))
-				ret = False
+			if live:
+				# Živý stream: manifest je dynamický, segmenty majú v URL query parameter
+				# (?start=...) a proxy si s tým neporadí - prehrávač skončil na čiernej
+				# obrazovke / EOF. Preto ideme priamo do prehrávača (exteplayer3 + ffmpeg
+				# zvládne MPEG-DASH sám) a proxy necháme len ako ďalšiu možnosť.
+				if not self._manifest_available(url):
+					continue
+
+				ret = self.add_live_streams(url, info.get('sourceHistory') or [], item['title'])
+			else:
+				try:
+					ret = self.resolve_streams(url, item['title'])
+				except Exception as e:
+					self.log_error("Failed to load stream manifest: %s" % error_text(e))
+					ret = False
 
 			if ret:
 				return ret
 
 		self.show_error(self._("Stream is not available - the broadcast probably hasn't started yet."))
 		return False
+
+	# ##################################################################################################################
+
+	def _manifest_available(self, url):
+		# rýchla kontrola, či zdroj naozaj vysiela (nefunkčný vracia HTTP 500)
+		try:
+			response = self.oktagontv.client.req_session.get(url, timeout=10, stream=True)
+			status = response.status_code
+			response.close()
+		except Exception as e:
+			self.log_error("Manifest check failed: %s" % error_text(e))
+			return False
+
+		if status != 200:
+			self.log_error("Manifest not available (HTTP %d): %s" % (status, url))
+			return False
+
+		return True
+
+	# ##################################################################################################################
+
+	def add_live_streams(self, url, source_history, title):
+		# 1) priamo manifest so session (prehráva od začiatku prenosu)
+		self.add_play(title, url, info_labels={'quality': 'auto'}, live=True)
+
+		# 2) živá hrana - ten istý stream bez session a bez ?start (zo sourceHistory)
+		for source_url in source_history:
+			if source_url and source_url != url:
+				self.add_play('%s  %s' % (title, _I(self._("(live edge)"))), source_url,
+				              info_labels={'quality': 'auto'}, live=True)
+
+		# 3) a nakoniec cez proxy s výberom kvality (keby priamy manifest nešiel)
+		try:
+			self.resolve_streams(url, '%s  %s' % (title, _I(self._("(via proxy)"))), True)
+		except Exception as e:
+			self.log_error("Failed to load stream manifest: %s" % error_text(e))
+
+		return True
 
 	# ##################################################################################################################
 
@@ -425,12 +471,6 @@ class OktagonTVContentProvider(CommonContentProvider):
 				url = stream_key_to_dash_url(self.http_endpoint, {'url': s['playlist_url'], 'bandwidth': s['bandwidth']})
 				info_labels = {'bandwidth': int(s['bandwidth']), 'quality': (s['height'] + 'p') if s.get('height') else '720p'}
 				self.add_play(title, url, info_labels=info_labels, live=live)
-
-			# Živý DASH z Tivia má segmenty so query parametrom (?start=...) a dynamický manifest.
-			# Ak by ho proxy nezvládla, ponúkneme aj priame prehratie manifestu prehrávačom.
-			if live:
-				self.add_play(title + '  ' + _I(self._("(direct stream)")), manifest_url,
-				              info_labels={'quality': 'auto'}, live=True)
 
 		return True
 

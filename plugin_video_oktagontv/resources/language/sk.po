@@ -153,5 +153,11 @@ msgstr "Stream nie je dostupný - prenos zrejme ešte nezačal."
 msgid "(direct stream)"
 msgstr "(priamy stream)"
 
+msgid "(live edge)"
+msgstr "(živá hrana)"
+
+msgid "(via proxy)"
+msgstr "(cez proxy)"
+
 #~ msgid "Home"
 #~ msgstr "Domov"

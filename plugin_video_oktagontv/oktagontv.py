@@ -797,9 +797,14 @@ class OktagonTVClient(object):
 
 	# ##################################################################################################################
 
-	def get_video_source_url(self, video_id, video_type='video'):
+	def get_video_source_info(self, video_id, video_type='video'):
 		# Pre live kanál sa žiada HLS, pre VOD DASH. Ak OKTAGON tlačí Widevine, tu treba
 		# doplniť {"codec":"h264","protocol":"dash","encryption":"widevine"} a spracovať licenciu.
+		#
+		# Odpoveď pri živom evente (overené z logu prijímača 1.8.2026):
+		#   url           - manifest so sessionId a ?start=<začiatok eventu> (prehráva od začiatku)
+		#   sourceHistory - ten istý stream bez session a bez ?start (živá hrana)
+		#   sessionType   - "live", sourcePlayMode - "HYBRID"
 		data = {
 			"id": video_id,
 			"documentType": video_type,
@@ -815,7 +820,10 @@ class OktagonTVClient(object):
 		except Exception:
 			pass
 
-		return result['url']
+		return result
+
+	def get_video_source_url(self, video_id, video_type='video'):
+		return self.get_video_source_info(video_id, video_type)['url']
 
 	# ##################################################################################################################
 
