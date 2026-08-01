@@ -150,5 +150,8 @@ msgstr "Přenos ještě nezačal. Začíná v %s."
 msgid "Stream is not available - the broadcast probably hasn't started yet."
 msgstr "Stream není dostupný - přenos zřejmě ještě nezačal."
 
+msgid "(direct stream)"
+msgstr "(přímý stream)"
+
 #~ msgid "Home"
 #~ msgstr "Domů"

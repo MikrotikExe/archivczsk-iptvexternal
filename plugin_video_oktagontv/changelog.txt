@@ -1,3 +1,14 @@
+0.5.5: živé prenosy - viac pokusov o funkčný zdroj
+- porovnanie HAR-u z prehliadača (1.8.2026) s logom prijímača ukázalo, že Tivio pri
+  živom evente nevracia vždy ten istý zdroj: prehliadaču dalo bežiaci zdroj
+  (id = video_source z katalógu), doplnku pri každom volaní iný, ktorý ešte nevysielal
+  (manifest = HTTP 500)
+- doplnok preto pri živom prenose skúsi getSourceUrl až 3x, kým nedostane funkčný manifest
+- k živému prenosu pribudla položka "(priamy stream)" - manifest ide rovno do prehrávača,
+  bez proxy (živé DASH segmenty majú v URL query parameter, s ktorým môže mať proxy problém)
+- streamy živých prenosov sa prehrávaču hlásia ako live (správne bufferovanie)
+- do logu sa vypisuje celá odpoveď getSourceUrl (diagnostika)
+
 0.5.4: zrozumiteľná hláška pri živých prenosoch
 - ak sa event pokúsiš pustiť pred jeho začiatkom, doplnok rovno napíše, kedy prenos
   začína (predtým skončil chybou - Tivio CDN pre ešte nespustený prenos vracia HTTP 500)

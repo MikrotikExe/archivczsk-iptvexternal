@@ -807,7 +807,15 @@ class OktagonTVClient(object):
 				{"codec": "h264", "protocol": "hls", "encryption": "none"} if video_type == 'tvChannel' else {"codec": "h264", "protocol": "dash", "encryption": "none"},
 			]
 		}
-		return self.call_tivio_api('getSourceUrl', data)['url']
+		result = self.call_tivio_api('getSourceUrl', data) or {}
+
+		# diagnostika: pri živých eventoch Tivio vracia rôzne zdroje, nech je v logu vidieť celú odpoveď
+		try:
+			self.cp.log_info("getSourceUrl(%s, %s) -> %s" % (video_id, video_type, json.dumps(result)[:800]))
+		except Exception:
+			pass
+
+		return result['url']
 
 	# ##################################################################################################################
 

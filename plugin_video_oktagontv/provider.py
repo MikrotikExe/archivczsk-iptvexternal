@@ -355,29 +355,45 @@ class OktagonTVContentProvider(CommonContentProvider):
 		# STREAM = živý event, VIDEO = záznam. Tivio documentType:
 		# TODO(oktagon): over presný typ z getSourceUrl (video vs tvChannel vs event).
 		video_type = 'video'
+		live = item.get('type') == 'STREAM'
 
-		try:
-			url = self.oktagontv.get_video_source_url(video_source, video_type)
-		except Exception as e:
-			msg = error_text(e)
-			self.log_error("getSourceUrl failed: %s" % msg)
-			# napr. budúci event (zatiaľ bez streamu), alebo chýba predplatné/PPV
-			self.show_error(msg or self._("This content is not available (subscription/PPV needed)."))
-			return
+		# Pri živých eventoch Tivio nevracia vždy ten istý zdroj - porovnanie HAR-u (1.8.2026)
+		# s logom prijímača ukázalo, že prehliadaču vráti bežiaci zdroj (id = video_source),
+		# doplnku pri každom volaní iný, ktorý ešte nevysiela (manifest = HTTP 500).
+		# Preto pri live skúsime getSourceUrl viackrát, kým nedostaneme funkčný manifest.
+		attempts = 3 if live else 1
+		tried = []
 
-		self.log_debug("Resolved OKTAGON stream URL: %s" % url)
+		for attempt in range(attempts):
+			try:
+				url = self.oktagontv.get_video_source_url(video_source, video_type)
+			except Exception as e:
+				msg = error_text(e)
+				self.log_error("getSourceUrl failed: %s" % msg)
+				# napr. budúci event (zatiaľ bez streamu), alebo chýba predplatné/PPV
+				self.show_error(msg or self._("This content is not available (subscription/PPV needed)."))
+				return
 
-		try:
-			ret = self.resolve_streams(url, item['title'])
-		except Exception as e:
-			# napr. HTTP 500 z live.streaming.tivio.studio, keď prenos ešte nebeží
-			self.log_error("Failed to load stream manifest: %s" % error_text(e))
-			ret = False
+			self.log_info("OKTAGON stream URL (%d/%d): %s" % (attempt + 1, attempts, url))
 
-		if not ret:
-			self.show_error(self._("Stream is not available - the broadcast probably hasn't started yet."))
+			if url in tried:
+				# ten istý zdroj, ktorý pred chvíľou nefungoval - netreba znova
+				continue
 
-		return ret
+			tried.append(url)
+
+			try:
+				ret = self.resolve_streams(url, item['title'], live)
+			except Exception as e:
+				# napr. HTTP 500 z live.streaming.tivio.studio, keď zdroj ešte nevysiela
+				self.log_error("Failed to load stream manifest: %s" % error_text(e))
+				ret = False
+
+			if ret:
+				return ret
+
+		self.show_error(self._("Stream is not available - the broadcast probably hasn't started yet."))
+		return False
 
 	# ##################################################################################################################
 
@@ -389,7 +405,7 @@ class OktagonTVContentProvider(CommonContentProvider):
 
 	# ##################################################################################################################
 
-	def resolve_streams(self, manifest_url, title=''):
+	def resolve_streams(self, manifest_url, title='', live=False):
 		if not manifest_url:
 			return False
 
@@ -399,15 +415,22 @@ class OktagonTVContentProvider(CommonContentProvider):
 				return False
 			for s in streams:
 				url = stream_key_to_hls_url(self.http_endpoint, {'url': s['playlist_url'], 'bandwidth': s['bandwidth']})
-				self.add_play(title, url, info_labels={'bandwidth': int(s['bandwidth'])})
+				self.add_play(title, url, info_labels={'bandwidth': int(s['bandwidth'])}, live=live)
 		else:
 			streams = self.get_dash_streams(manifest_url, self.oktagontv.client.req_session, max_bitrate=self.get_setting('max_bitrate'))
 			if not streams:
 				return False
+
 			for s in streams:
 				url = stream_key_to_dash_url(self.http_endpoint, {'url': s['playlist_url'], 'bandwidth': s['bandwidth']})
 				info_labels = {'bandwidth': int(s['bandwidth']), 'quality': (s['height'] + 'p') if s.get('height') else '720p'}
-				self.add_play(title, url, info_labels=info_labels)
+				self.add_play(title, url, info_labels=info_labels, live=live)
+
+			# Živý DASH z Tivia má segmenty so query parametrom (?start=...) a dynamický manifest.
+			# Ak by ho proxy nezvládla, ponúkneme aj priame prehratie manifestu prehrávačom.
+			if live:
+				self.add_play(title + '  ' + _I(self._("(direct stream)")), manifest_url,
+				              info_labels={'quality': 'auto'}, live=True)
 
 		return True
 
