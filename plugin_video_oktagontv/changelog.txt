@@ -1,3 +1,11 @@
+1.0.0: prvé stabilné vydanie
+- katalóg: živé prenosy, zápasy, turnaje (zoskupené do sérií), relácie, záznamy,
+  balíčky/PPV a vyhľadávanie
+- živý prenos: doplnok si od Tivia vypýta HLS, prehráva sa cez proxy s výberom
+  kvality (1080p / 720p / 360p) a s českou zvukovou stopou (pole "language")
+- záznamy: prehrávanie cez proxy tak, ako to majú ostatné doplnky
+- overené na živom prenose OKTAGON 92 (1.8.2026) na Vu+ Uno4K SE / OpenATV 7.6
+
 0.5.10: preč s nefunkčnou položkou "živá hrana"
 - test na živom prenose OKTAGON 92 (1.8.2026): všetky tri kvality cez proxy aj priamy
   manifest sa prehrávajú s českou stopou, ale zdroj zo sourceHistory (bez sessionId)
