@@ -1,3 +1,12 @@
+0.5.8: správna jazyková verzia živého prenosu (predtým hral nemecký komentár)
+- z HAR-u webu (1.8.2026) je vidieť, že prehliadač posiela do getSourceUrl aj polia
+  "language", "platform" a "deviceId" a hlási všetky štyri kombinácie capabilities
+- OKTAGON vysiela event paralelne vo viacerých jazykoch (CZ/SK, DE, PL), každý má
+  vlastný zdroj; bez poľa "language" vracalo Tivio náhodný encoder, takže na prijímači
+  hral nemecký komentár a niektoré zdroje ani nevysielali (HTTP 500)
+- doplnok teraz posiela to isté telo požiadavky ako web (language=cs, platform=WEB,
+  stabilné deviceId uložené pri prihlásení) -> vráti sa zdroj zhodný s katalógom
+
 0.5.7: oprava 0.5.6 - chýbajúca metóda get_video_source_info
 - v 0.5.6 bola nová metóda pridaná len do nízkoúrovňového klienta, nie do triedy,
   ktorú volá menu -> prehrávanie končilo hláškou

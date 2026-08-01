@@ -189,6 +189,9 @@ class OktagonTVClient(object):
 
 	REFERER = "https://oktagon.tv/"
 
+	# Jazyk, ktorý sa posiela do getSourceUrl (vyberá jazykovú mutáciu živého prenosu).
+	LANGUAGE = "cs"
+
 	# Tivio cloud funkcia na premostenie OKTAGON účtu do Tivio (vracia Firebase custom token):
 	SIGN_IN_WITH_TENANT_URL = "https://europe-west3-tivio-production.cloudfunctions.net/signInWithTenant"
 
@@ -797,19 +800,41 @@ class OktagonTVClient(object):
 
 	# ##################################################################################################################
 
+	def get_device_id(self):
+		# Stabilný identifikátor zariadenia - web ho posiela do getSourceUrl.
+		device_id = self.login_data.get('device_id')
+
+		if not device_id:
+			import uuid
+			device_id = str(uuid.uuid4())
+			self.login_data['device_id'] = device_id
+			self.save_login_data()
+
+		return device_id
+
 	def get_video_source_info(self, video_id, video_type='video'):
-		# Pre live kanál sa žiada HLS, pre VOD DASH. Ak OKTAGON tlačí Widevine, tu treba
-		# doplniť {"codec":"h264","protocol":"dash","encryption":"widevine"} a spracovať licenciu.
+		# Telo požiadavky je 1:1 to, čo posiela web (overené z HAR-u 1.8.2026).
 		#
-		# Odpoveď pri živom evente (overené z logu prijímača 1.8.2026):
-		#   url           - manifest so sessionId a ?start=<začiatok eventu> (prehráva od začiatku)
-		#   sourceHistory - ten istý stream bez session a bez ?start (živá hrana)
-		#   sessionType   - "live", sourcePlayMode - "HYBRID"
+		# KĽÚČOVÉ je pole "language": OKTAGON vysiela event paralelne vo viacerých
+		# jazykoch (CZ/SK, DE, PL) a bez neho Tivio vracalo náhodné encodery -
+		# na prijímači tak hral nemecký komentár. So správnym jazykom vráti zdroj,
+		# ktorého ID sa zhoduje s video_source z katalógu (česká verzia).
+		#
+		# Odpoveď pri živom evente:
+		#   url             - manifest so sessionId, ?start=<začiatok eventu> a pairingId
+		#   sourceHistory   - ten istý stream bez session (živá hrana)
+		#   sessionType     - "interactive", activeContentId - práve vysielaný obsah
 		data = {
 			"id": video_id,
 			"documentType": video_type,
+			"language": self.LANGUAGE,
+			"platform": "WEB",
+			"deviceId": self.get_device_id(),
 			"capabilities": [
-				{"codec": "h264", "protocol": "hls", "encryption": "none"} if video_type == 'tvChannel' else {"codec": "h264", "protocol": "dash", "encryption": "none"},
+				{"codec": "h264", "protocol": "dash", "encryption": "none"},
+				{"codec": "h264", "protocol": "dash", "encryption": "widevine"},
+				{"codec": "h264", "protocol": "dash", "encryption": "playready"},
+				{"codec": "h264", "protocol": "hls", "encryption": "none"},
 			]
 		}
 		result = self.call_tivio_api('getSourceUrl', data) or {}
