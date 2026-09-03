@@ -122,7 +122,7 @@ GitHub and offers the update to end users.
 │   ├── plugin.video.tvheadend/
 │   │   └── plugin.video.tvheadend-1.0.0.zip
 │   ├── plugin.video.oktagontv/
-│   │   └── plugin.video.oktagontv-0.5.3.zip
+│   │   └── plugin.video.oktagontv-1.0.0.zip
 │   └── plugin.video.e2m3u2bouquet/
 │       └── plugin.video.e2m3u2bouquet-0.2.1.zip
 ├── plugin_video_oktagontv/                  ← source: OKTAGON.tv client
