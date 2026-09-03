@@ -241,7 +241,11 @@ class BouquetDvbMixin(object):
 		# Auth: vytiahni z prvého http URL credentials (rovnako ako _patched_dp)
 		auth = None
 		try:
-			from urllib.parse import urlparse as _up
+			# FIX 1.0.0 (audit): `from urllib.parse import ...` je Py3-only
+			# a v tomto try/except by na Py2 ticho zhodilo celé zisťovanie
+			# credentials (picony by sa sťahovali bez auth → 401).
+			# Framework compat helper rieši obe verzie.
+			from tools_archivczsk.compat import urlparse as _up
 			if http_url_fn and mapping:
 				probe = http_url_fn(mapping[0][1])
 				if probe:

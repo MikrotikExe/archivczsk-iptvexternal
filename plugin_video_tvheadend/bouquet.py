@@ -4,16 +4,6 @@ import hashlib
 import os
 import time
 
-# -------------------------------------------------
-# Python 2/3 compatibility
-# -------------------------------------------------
-# FIX 0.57.0 (skyjet PR #22 review): threading je vždy dostupný v
-# Py2.7+ aj Py3 (stdlib module); fallback try/except odstránený.
-import threading
-
-
-
-
 # FIX 0.57.0 (skyjet PR #22 review): urllib Py2/Py3 fallback nahradený
 # centrálnym tools_archivczsk.compat helper-om. Predtým bol 8-riadkový
 # try/except nested fallback (urllib.parse → urlparse → no-op lambda)
@@ -31,13 +21,6 @@ from tools_archivczsk.generator.bouquet import BouquetGeneratorTemplate
 # (addon.xml require version 3.4+) — žiadny fallback netreba.
 from tools_archivczsk.string_utils import strip_accents
 
-try:
-	from ._picons import _picon_ready_event as _tvh_picon_ready
-except Exception:
-	_tvh_picon_ready = None
-
-# FIX 0.48j: import persistent data path helper
-from ._paths import data_path
 from ._bouquet_common import BouquetCommonMixin
 from ._bouquet_tags import BouquetTagsMixin
 from ._bouquet_radio import BouquetRadioMixin
@@ -51,27 +34,11 @@ from ._bouquet_dvb import BouquetDvbMixin
 # odstránený spolu s celou custom inject_tvh_epg_into_enigma() cestou.
 # Framework `BouquetXmlEpgGenerator` trigger-uje EPG inject automaticky.
 
-# FIX 0.48b: module-level debounce stamp pre download_picons_from_bouquets.
-# Framework BouquetXmlEpgGenerator volá _post() pri každom channel_type
-# (tv + radio = 2×). Bez debouncu sa logika kopírovania a fallback
-# downloadov spúšťa 2× po sebe → log spam + zbytočná záťaž.
-# FIX 0.50beta: locky inicializované eagerly pri importe modulu namiesto
-# lazy v rámci funkcie. Lazy init `if X is None: X = Lock()` mal race
-# condition keď 2 thready prešli kontrolou predtým ako jeden vytvoril
-# inštanciu — druhý prepísal lock cudzou inštanciou a debouncing stratil
-# atomicitu. Eager init je O(1) pri starte a deterministické.
-_DOWNLOAD_PICONS_LOCK = threading.Lock()
-
-# FIX 0.48c: debounce pre celý refresh_userbouquet_start._post() callback.
-# Predtým debouncoval len picon copy step (#FIX 0.48b), ale celý _post()
-# obsahuje aj _fix_radio_bouquet_filenames() + eDVBDB.reloadBouquets() +
-# OpenWebif HTTP request — tie bežali 2× za sebou (raz pre TV, raz pre Radio
-# channel_type). Aplikujeme rovnakú debounce logiku ako pri picon copy,
-# 30 sekundové okno je dostatočné na pokrytie tv+radio framework cyklu.
-# FIX 0.50beta: eager init (rovnaký dôvod ako _DOWNLOAD_PICONS_LOCK).
-_POST_CALLBACK_LOCK = threading.Lock()
-_LAST_POST_CALLBACK_TS = [0]
-_POST_CALLBACK_DEBOUNCE_SEC = 30
+# FIX 1.0.0 (audit): odstránené `_DOWNLOAD_PICONS_LOCK` (nikde nepoužitý —
+# pozostatok po vlastnom picon flow zrušenom v 0.57.0) a debounce stav
+# `_POST_CALLBACK_LOCK` / `_LAST_POST_CALLBACK_TS` / `_POST_CALLBACK_DEBOUNCE_SEC`,
+# ktorý slúžil výhradne metóde refresh_userbouquet_start() — tá je tiež
+# odstránená, viď poznámku pri refresh_bouquet().
 
 
 # FIX 0.57.0: framework BouquetGeneratorTemplate.download_picons() volá
@@ -733,132 +700,20 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 
 		return ret
 
+	# FIX 1.0.0 (audit): odstránená metóda refresh_userbouquet_start()
+	# aj s jej ~120-riadkovým _post() callbackom. Dôvody:
+	#   1) volala BouquetXmlEpgGenerator.refresh_userbouquet_start(), ktorá
+	#      vo frameworku VÔBEC NEEXISTUJE (overené v tools_archivczsk:
+	#      generator/bouquet_xmlepg.py má len refresh_bouquet, refresh_xmlepg,
+	#      refresh_xmlepg_start a bouquet_settings_changed) — parent call teda
+	#      vždy skončil na AttributeError v except vetve;
+	#   2) _post() robil presne to isté čo robí refresh_bouquet() vyššie
+	#      (_fix_radio_bouquet_filenames + eDVBDB reload + OpenWebif reload),
+	#      len o sekundu neskôr a s vlastným debouncom;
+	#   3) volal ju jediný kód v doplnku — fallback vetva v tvh_actions.py,
+	#      ktorá bola tiež mŕtva, lebo bouquet_settings_changed() nezlyháva.
+	# Spolu s ňou padol aj _picon_ready_event (nikto naň už nečaká).
 
-
-
-
-
-
-	def refresh_userbouquet_start(self, *args, **kwargs):
-		try:
-			ret = BouquetXmlEpgGenerator.refresh_userbouquet_start(self, *args, **kwargs)
-		except Exception:
-			ret = None
-
-		def _post():
-			# FIX 0.58.5 (audit, Juraj): entry log pre diagnostiku.
-			# Bez tohto logu sa nedalo zistiť či timer thread vôbec spustil
-			# callback po refresh_userbouquet_start. Ak `enable_userbouquet_radio`
-			# bol True pri starte refresh-u ale userbouquet.tvheadend_radio
-			# stále mal .tv extension, znamenalo to že _post() sa buď
-			# nevolal (timer thread crash), alebo bol debouncom preskočený,
-			# alebo _fix_radio_bouquet_filenames zlyhalo silentne.
-			self._log("refresh_userbouquet_start._post: starting (1s after refresh)")
-
-			# FIX 0.48c: debounce celého _post() callbacku.
-			# Framework volá refresh_userbouquet_start raz pre channel_type='tv'
-			# a raz pre 'radio', takže _post() je v rade 2× ~1s od seba.
-			# Bez debouncu by sa _fix_radio_bouquet_filenames(),
-			# download_picons() (interne má svoj vlastný debounce) a 2×
-			# eDVBDB.reloadBouquets() + OpenWebif request spustili dvojnásobne.
-			# FIX 0.50beta: lock je teraz module-level eager init, nie lazy
-			now_ts = int(time.time())
-			if _POST_CALLBACK_LOCK is not None:
-				with _POST_CALLBACK_LOCK:
-					since = now_ts - _LAST_POST_CALLBACK_TS[0]
-					if since < _POST_CALLBACK_DEBOUNCE_SEC:
-						self._log("refresh_userbouquet_start._post called %ds "
-						          "after last run (debounce %ds) — skipping "
-						          "duplicate" % (since, _POST_CALLBACK_DEBOUNCE_SEC))
-						return
-					_LAST_POST_CALLBACK_TS[0] = now_ts
-
-			# FIX 0.58.5 (audit, Juraj): log výnimky pred swallow-om. Pred
-			# audit-om bol blok `try: _fix_radio(); except: pass` ktorý
-			# silentne pohltil každú chybu — výsledok bol že keď
-			# _fix_radio_bouquet_filenames zlyhala (z akéhokoľvek dôvodu),
-			# userbouquet.tvheadend_radio.tv zostal v bouquets.tv namiesto
-			# byť presunutý do bouquets.radio, ale nikde sa to nedalo zistiť.
-			try:
-				self._fix_radio_bouquet_filenames()
-			except Exception as e:
-				self._log("_fix_radio_bouquet_filenames raised: %s" % e)
-			# Počkaj kým picon worker dobeží (max 120 sekúnd)
-			# Používame threading.Event namiesto sleep slučky – efektívnejšie
-			# FIX 0.48c: event sa teraz správne čistí na začiatku worker-a
-			# (predtým bol set forever a wait() sa vracal okamžite).
-			try:
-				if _tvh_picon_ready is not None:
-					_tvh_picon_ready.wait(timeout=120)
-				else:
-					# fallback na stamp kontrolu
-					# FIX 0.48j: persistent data dir (rovnaký path ako tvheadend._PICON_STAMP)
-					_picon_stamp_path = data_path("tvh_picon.stamp")
-					for _ in range(120):
-						if os.path.isfile(_picon_stamp_path):
-							break
-						time.sleep(1)
-			except Exception:
-				pass
-			# FIX 0.57.0 (skyjet PR #22 review #14): explicit self.download_picons()
-			# call removed — BouquetGeneratorTemplate.run() automaticky volá
-			# download_picons() v background thread keď enable_picons=True.
-
-			# FIX 0.48: po dokončení refresh-u prinúť Enigma2 znovu načítať
-			# bouquet súbory z disku — bez tohto user musel reštartovať Enigma2
-			# aby uvidel nové kanály v live TV. M3UBouquetWriter to už robí
-			# (eDVBDB + OpenWebif), pridávame ekvivalent aj sem.
-			try:
-				from enigma import eDVBDB
-				db = eDVBDB.getInstance()
-				db.reloadBouquets()
-				self._log("eDVBDB.reloadBouquets() OK after TVH bouquet refresh")
-				try:
-					db.reloadServicelist()
-				except Exception:
-					pass
-			except ImportError:
-				# bežíme mimo Enigma2 (testy) — preskoč
-				pass
-			except Exception as e:
-				self._log("eDVBDB.reloadBouquets() failed: %s" % e)
-
-			# OpenWebif fallback — funguje aj keď enigma cache caching skin
-			try:
-				try:
-					from urllib.request import urlopen as _urlopen
-				except ImportError:
-					from urllib2 import urlopen as _urlopen
-				resp = _urlopen('http://127.0.0.1/web/servicelistreload?mode=2',
-				                timeout=5)
-				try:
-					resp.read()
-				finally:
-					try:
-						resp.close()
-					except Exception:
-						pass
-				self._log("OpenWebif servicelistreload OK")
-			except Exception:
-				# OpenWebif nemusí byť spustený — to je v poriadku
-				pass
-
-			# FIX 0.58.2 (skyjet PR #22 review #11 follow-up): custom EPG
-			# injection v _post() callback-u odstránená. Framework
-			# `BouquetXmlEpgGenerator.bouquet_settings_changed` po
-			# `refresh_bouquet` automaticky volá `refresh_xmlepg` ktorá
-			# spustí `EnigmaEpgGenerator.run()` → iteruje cez
-			# `get_xmlepg_channels()` + `get_epg()` → priame importEvent()
-			# volania. Tým sa odstránila duplicita.
-
-		try:
-			t = threading.Timer(1.0, _post)
-			t.daemon = True
-			t.start()
-		except Exception:
-			pass
-
-		return ret
 
 	# -------------------------------------------------
 	# FAST EPG
@@ -892,9 +747,15 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 			except Exception:
 				pass
 
-		if self._epg_cache is None:
-			self._epg_cache = {}
-			self._epg_cache_ts = now_ts
+		# FIX 1.0.0 (audit): cache sa buduje do LOKÁLNEHO dictu a priradí
+		# až hotová (rovnaký vzor ako load_channel_list po 0.59.7). get_epg()
+		# je generátor volaný frameworkom pre KAŽDÝ kanál pri exporte EPG;
+		# medzitým môže iný thread (load_channel_list pri bouquet refreshi)
+		# nastaviť self._epg_cache = None. Predtým to znamenalo buď
+		# polopostavenú cache, alebo AttributeError uprostred exportu.
+		cache = self._epg_cache
+		if cache is None:
+			cache = {}
 			if getattr(self.cp.tvh, 'is_htsp_mode', lambda: False)():
 				# HTSP mód: EPG z HTSP metadát (channelUuid = str(channelId))
 				try:
@@ -909,7 +770,7 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 							continue
 						if stop <= fromts_i or start >= tots_i:
 							continue
-						self._epg_cache.setdefault(str(cid), []).append({
+						cache.setdefault(str(cid), []).append({
 							'start': start, 'stop': stop,
 							'title': ev.get('title') or '',
 							'description': ev.get('description') or ev.get('summary') or '',
@@ -937,11 +798,15 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 							continue
 						if stop <= fromts_i or start >= tots_i:
 							continue
-						self._epg_cache.setdefault(cuuid, []).append(ev)
+						cache.setdefault(cuuid, []).append(ev)
 					except Exception:
 						continue
 
-		for ev in self._epg_cache.get(ch_uuid, []):
+			# atomické priradenie až po dokončení
+			self._epg_cache = cache
+			self._epg_cache_ts = now_ts
+
+		for ev in cache.get(ch_uuid, []):
 			try:
 				start = int(ev.get("start") or 0)
 				stop = int(ev.get("stop") or 0)

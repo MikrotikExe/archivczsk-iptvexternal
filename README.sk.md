@@ -119,7 +119,7 @@ a ponúkne update koncovým používateľom.
 ├── LICENSE                                  ← GPL-2.0 licenčný text
 ├── repo/                                    ← release ZIP-y (jeden sub-dir per addon)
 │   ├── plugin.video.tvheadend/
-│   │   └── plugin.video.tvheadend-0.90.0.zip
+│   │   └── plugin.video.tvheadend-1.0.0.zip
 │   ├── plugin.video.oktagontv/
 │   │   └── plugin.video.oktagontv-0.5.3.zip
 │   └── plugin.video.e2m3u2bouquet/

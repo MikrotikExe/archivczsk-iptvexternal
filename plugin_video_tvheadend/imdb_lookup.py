@@ -43,6 +43,7 @@
 
 from __future__ import absolute_import, unicode_literals, print_function
 
+import io
 import json
 import logging
 import os
@@ -182,14 +183,18 @@ _SESSION_INITIALIZED = False
 # (defined in classifier.py). We import these as strings to avoid a circular
 # import — classifier.py imports this module, not the other way around.
 _IMDB_GENRE_TO_SUBCAT = {
+	# FIX 1.0.0 (audit): 'mv_dobrodr' a 'mv_animak' NEEXISTUJÚ — konštanty
+	# v classifier.py sú 'mv_dobrodruzny' a 'mv_animovany'. Nahrávky ktorým
+	# IMDb vrátilo Adventure/Animation/Family tak skončili v podžánri ktorý
+	# žiadne menu nevykresľuje a z Filmov/Seriálov ticho zmizli.
 	'Action':       'mv_akcny',
-	'Adventure':    'mv_dobrodr',
-	'Animation':    'mv_animak',
+	'Adventure':    'mv_dobrodruzny',
+	'Animation':    'mv_animovany',
 	'Biography':    'mv_historicky',
 	'Comedy':       'mv_komedia',
 	'Crime':        'mv_krimi',
 	'Drama':        'mv_drama',
-	'Family':       'mv_dobrodr',
+	'Family':       'mv_dobrodruzny',
 	'Fantasy':      'mv_scifi',
 	'Film-Noir':    'mv_krimi',
 	'History':      'mv_historicky',
@@ -310,7 +315,10 @@ def _load_cache_if_needed():
 		if not os.path.isfile(path):
 			return
 		try:
-			with open(path, 'r', encoding='utf-8') as f:
+			# FIX 1.0.0 (audit): io.open kvôli Py2 — builtin open() tam
+			# nepozná kwarg encoding, takže celé načítanie cache padalo
+			# do except vetvy a IMDb cache sa nikdy nenačítala.
+			with io.open(path, 'r', encoding='utf-8') as f:
 				_CACHE_STATE['data'] = json.load(f)
 			_log(0, 'cache loaded: %d entries' % len(_CACHE_STATE['data']))
 		except Exception as e:
@@ -328,9 +336,18 @@ def _save_cache(force=False):
 			return
 		try:
 			tmp = _cache_path() + '.tmp'
-			with open(tmp, 'w', encoding='utf-8') as f:
-				json.dump(_CACHE_STATE['data'], f, ensure_ascii=False, indent=1)
-			os.replace(tmp, _cache_path())
+			# FIX 1.0.0 (audit): io.open + fallback za os.replace (Py3-only),
+			# rovnaký vzor ako v _watched_history._save_watched_history().
+			with io.open(tmp, 'w', encoding='utf-8') as f:
+				f.write(json.dumps(_CACHE_STATE['data'],
+				                   ensure_ascii=False, indent=1))
+			dst = _cache_path()
+			if hasattr(os, 'replace'):
+				os.replace(tmp, dst)
+			else:
+				if os.path.exists(dst):
+					os.remove(dst)
+				os.rename(tmp, dst)
 			_CACHE_STATE['last_save'] = now
 			_CACHE_STATE['dirty'] = False
 		except Exception as e:

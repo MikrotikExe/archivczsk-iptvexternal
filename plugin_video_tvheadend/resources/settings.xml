@@ -11,7 +11,6 @@
 	<setting label="Password" type="password" id="password" default=""/>
 	<setting label="HTTP authentication" type="keyenum" id="http_auth_mode"
 			 values="auto;Auto|digest;Digest|basic;Basic|none;None" default="auto"/>
-	<setting label="Use ticket URL (recommended for Digest)" type="bool" id="use_ticket_url" default="true"/>
 	<setting label="TVH stream profile" type="keyenum" id="profile"
 			 values="pass;pass|mpegts;mpegts|matroska;matroska|htsp;htsp|webtv-h264-aac-matroska;webtv-h264-aac-matroska|webtv-h264-aac-mpegts;webtv-h264-aac-mpegts" default="pass"/>
 	<setting label="Timeout (seconds)" type="text" id="loading_timeout" default="15"/>

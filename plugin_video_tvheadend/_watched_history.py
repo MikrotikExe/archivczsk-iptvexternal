@@ -48,16 +48,36 @@ _WATCHED_HISTORY_MAX = 50
 _WATCHED_MARK_PCT = 80
 _WATCHED_AUTO_CLEAR_DEFAULT_PCT = 95
 
+# FIX 1.0.0 (audit): in-memory cache nad JSON súborom.
+# Predtým sa súbor otváral a parsoval pri KAŽDOM volaní. Pri vykreslení
+# archívu volá _append_watch_markers() na každú položku _is_fully_watched()
+# aj _get_watched_position() — teda 2 čítania z disku + 2× json.load na
+# jednu nahrávku. Pri 300-položkovom zozname to bolo 600 parsovaní JSON-u
+# na jedno otvorenie menu, čo je na slabom boxe citeľné.
+# Cache sa invaliduje podľa mtime + veľkosti súboru, takže zmena spravená
+# iným procesom sa aj tak prejaví.
+_CACHE = {'stat': None, 'data': None}
+
+
 def _load_watched_history():
 	"""Načítaj JSON s watched history. Pri chybe vráti prázdny dict."""
 	try:
 		import json
-		if not os.path.isfile(_WATCHED_HISTORY_PATH):
+		try:
+			st = os.stat(_WATCHED_HISTORY_PATH)
+			sig = (st.st_mtime, st.st_size)
+		except OSError:
+			_CACHE['stat'] = None
+			_CACHE['data'] = None
 			return {}
+		if _CACHE['stat'] == sig and isinstance(_CACHE['data'], dict):
+			return _CACHE['data']
 		with open(_WATCHED_HISTORY_PATH, 'r') as f:
 			data = json.load(f)
 		if not isinstance(data, dict):
 			return {}
+		_CACHE['stat'] = sig
+		_CACHE['data'] = data
 		return data
 	except Exception:
 		return {}
@@ -77,8 +97,18 @@ def _save_watched_history(history):
 			if os.path.exists(_WATCHED_HISTORY_PATH):
 				os.remove(_WATCHED_HISTORY_PATH)
 			os.rename(tmp, _WATCHED_HISTORY_PATH)
+		# Drž cache v súlade so zapísaným stavom (inak by ďalšie čítanie
+		# vrátilo starý obsah až do zmeny mtime).
+		try:
+			st = os.stat(_WATCHED_HISTORY_PATH)
+			_CACHE['stat'] = (st.st_mtime, st.st_size)
+			_CACHE['data'] = history
+		except OSError:
+			_CACHE['stat'] = None
+			_CACHE['data'] = None
 	except Exception:
-		pass
+		_CACHE['stat'] = None
+		_CACHE['data'] = None
 
 
 def _track_watched(entry):

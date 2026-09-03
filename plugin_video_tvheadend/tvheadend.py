@@ -33,17 +33,10 @@ except Exception:
 	ExpiringLRUCache = None
 
 # --------------------------------------------------------------------------
-# queue compat
-# --------------------------------------------------------------------------
-
-# --------------------------------------------------------------------------
 # requests extras
 # --------------------------------------------------------------------------
-try:
-	from requests.auth import HTTPDigestAuth
-except Exception:
-	HTTPDigestAuth = None
-
+# Pozn.: stock requests.auth.HTTPDigestAuth sa nepoužíva — plugin má vlastnú
+# HTTPDigestAuthMulti nižšie (MD5 + SHA-256 + SHA-512-256).
 try:
 	from requests.auth import AuthBase as _RequestsAuthBase
 except Exception:
@@ -204,15 +197,15 @@ from ._data_api import TvhDataApiMixin
 from ._picons import TvhPiconMixin
 
 
-# --------------------------------------------------------------------------
-# Konštanty
-
-
 class Tvheadend(TvhHtspApiMixin, TvhStreamUrlMixin, TvhDataApiMixin, TvhPiconMixin, object):
 	"""
-	Thin wrapper nad Tvheadend HTTP API (port 9981/9982).
+	Klient Tvheadend servera.
 
-	Nevyužíva HTSP – všetko ide cez REST JSON API.
+	Dva režimy podľa nastavenia `connection_mode`:
+	  - http (9981) — metadáta cez REST JSON API
+	  - htsp (9982) — metadáta cez HTSP protokol (mixin TvhHtspApiMixin)
+	Streamovanie ide v OBOCH režimoch cez HTTP endpointy na 9981
+	(stream/channelid/, dvrfile/).
 	"""
 
 	PREFER_CHANNEL_STREAM = True
@@ -276,7 +269,11 @@ class Tvheadend(TvhHtspApiMixin, TvhStreamUrlMixin, TvhDataApiMixin, TvhPiconMix
 			u = urlparse(host)
 			scheme = u.scheme
 			hostname = u.hostname or ''
-			port = str(u.port or (9982 if scheme == 'https' else 9981))
+			# FIX 1.0.0 (audit): pre https bez portu sa predtým dosadil 9982,
+			# čo je HTSP port — HTTP API tam nepočúva, takže "https://host"
+			# bez portu vždy zlyhalo. Default je 9981 pre obe schémy; ak má
+			# užívateľ HTTPS na inom porte, uvedie ho priamo v URL.
+			port = str(u.port or 9981)
 			return '%s://%s:%s' % (scheme, hostname, port)
 
 		port = str(self.cp.get_setting('port') or '9981').strip()
@@ -488,41 +485,15 @@ class Tvheadend(TvhHtspApiMixin, TvhStreamUrlMixin, TvhDataApiMixin, TvhPiconMix
 
 
 
-	# ------------------------------------------------------------------
-	# Icon / picon helpers
-	# ------------------------------------------------------------------
-
-
-
-
-
-
-
-
-	@staticmethod
-
-
-
-
-	@staticmethod
-
-	@staticmethod
-
-
-	# ------------------------------------------------------------------
-	# Channel / tag / DVR / EPG API
-	# ------------------------------------------------------------------
-
-	# ------------------------------------------------------------------
-	# HTSP mód (0.62.0) — alternatíva k HTTP API (port 9982)
-	# HTSP len dodáva dáta; bouquet/EPG/picon logika ostáva nezmenená.
-	# ------------------------------------------------------------------
-
-
 	def _log(self, msg):
-		"""Log do archivCZSK.log cez framework (Tvheadend trieda nemala
-		vlastný _log — moje HTSP debug logy preto tíško padali na
-		AttributeError. Toto to opravuje)."""
+		"""Log do archivCZSK.log cez framework.
+
+		FIX 1.0.0 (audit): pred touto opravou tu ostali po refaktore 0.90.0
+		tri osirelé `@staticmethod` dekorátory (metódy _write_stamp,
+		_ctype_to_ext a _sniff_ext sa presunuli do _picons.py, ale ich
+		dekorátory nie). Zreťazili sa na _log, takže KAŽDÉ volanie
+		self._log(...) hodilo TypeError. Dekorátory sú odstránené a
+		príslušné metódy v _picons.py majú @staticmethod späť."""
 		try:
 			if self.cp is not None and hasattr(self.cp, 'log_info'):
 				self.cp.log_debug(str(msg))

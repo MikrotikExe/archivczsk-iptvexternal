@@ -74,9 +74,17 @@ class TvheadendContentProvider(DiagnosticsMixin, LiveMixin, ActionsMixin, DvrMix
 	# keď user zmení niektoré z týchto settings (re-login auto trigger).
 	login_settings_names = tuple()
 	login_optional_settings_names = (
+		# FIX 1.0.0 (audit): 'use_ticket_url' odstránený — setting bol
+		# v settings.xml aj tu, ale žiadny kód ho nikdy nečítal (grep cez
+		# celý doplnok aj framework: nula výskytov). Užívateľ prepínal
+		# prepínač, ktorý nič nerobil. Odstránený aj zo settings.xml.
+		# 'connection_mode' a 'htsp_port' naopak pribudli — ich zmena musí
+		# vyvolať re-login, inak sa prepnutie HTTP/HTSP prejaví až po
+		# reštarte GUI.
 		'host', 'port', 'use_https',
 		'username', 'password',
-		'http_auth_mode', 'use_ticket_url',
+		'http_auth_mode',
+		'connection_mode', 'htsp_port',
 		'profile', 'loading_timeout',
 	)
 
@@ -254,21 +262,10 @@ class TvheadendContentProvider(DiagnosticsMixin, LiveMixin, ActionsMixin, DvrMix
 					             info_labels={'title': self._("Recently watched")})
 			except Exception:
 				pass
-		elif tvh_reason == 'unreachable':
-			# FIX 0.48h: ukáž retry ak má užívateľ vyplnené TVH credentials
-			# ale práve teraz nejde (transient)
-			# FIX 0.50beta: + user-friendly hint
-			# FIX 0.50beta (iter 3): hint → skip raw error (čistejšie UI)
-			self.add_dir(self._("⟳ Retry TVH connection (currently unreachable)"),
-			             cmd=self.action_retry_tvh_root,
-			             info_labels={'title': self._("Retry TVH")})
-			hint = self._guess_tvh_error_hint(tvh_err)
-			if hint:
-				self.add_dir(hint,
-				             cmd=self.settings_menu,
-				             info_labels={'title': self._("Open settings")})
-			else:
-				self._render_tvh_error_lines(tvh_err)
+		# FIX 1.0.0 (audit): tu bola vetva `elif tvh_reason == 'unreachable'`
+		# s druhou kópiou retry/hint položiek. Bola nedosiahnuteľná — stav
+		# `not tvh_ok` sa rieši a `return`-uje už v bloku vyššie, takže sem
+		# sa program dostane iba s tvh_ok=True. Odstránené.
 
 		# Settings folder vždy prístupný (užívateľ ho potrebuje aj keď TVH zlyhal).
 		self.add_dir(self._("Settings"),

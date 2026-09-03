@@ -43,9 +43,10 @@ _PICON_MAX_WORKERS = 6
 _PICON_EARLY_ABORT_404 = 30
 _picon_worker_lock = threading.Lock()
 
-# threading.Event – signalizuje že picon worker dobehol
-# bouquet._post() čaká na tento event namiesto sleep slučky
-_picon_ready_event = threading.Event()
+# FIX 1.0.0 (audit): `_picon_ready_event` odstránený. Jediný čakateľ bol
+# bouquet.refresh_userbouquet_start._post(), ktorý bol tiež odstránený
+# (volal neexistujúcu framework metódu). Event sa tak už len nastavoval
+# a nuloval, nikto ho nečítal.
 
 # FIX 0.48b: NEGATÍVNA CACHE pre 404 picony.
 # Problém: niektoré channels v TVH majú icon_public_url='imagecache/NNNN'
@@ -167,17 +168,9 @@ class TvhPiconMixin(object):
 		# Zabráň paralelným behom – len jeden worker naraz
 		if not _picon_worker_lock.acquire(False):
 			return
-		# FIX 0.48c: clear() event PRED behom workera, set() až na konci.
-		# Predtým bol event set forever po prvom behu — _post() v bouquet.py
-		# pri ďalšom refreshi nečakal a picon copy bežal PRED tým ako sa
-		# nové ikony stiahli (race condition pri pridaní nových kanálov v TVH).
-		_picon_ready_event.clear()
 		try:
 			self._init_picons_worker_inner()
 		finally:
-			# Set sa volá aj z _init_picons_worker_inner pri early-return
-			# cestách. Tu len garancia že sa to NEZABUDNE pri exception.
-			_picon_ready_event.set()
 			_picon_worker_lock.release()
 
 	def _init_picons_worker_inner(self):
@@ -276,7 +269,6 @@ class TvhPiconMixin(object):
 
 			if last and (now - last) < ttl and cache_has_files and not picon_dir_empty and not significantly_missing:
 				self._log_picon('Picon cache is fresh (last=%d, ttl=%d), skipping' % (last, ttl))
-				_picon_ready_event.set()
 				return
 
 			self._log_picon('Starting picon download (cache_has_files=%s, last=%d, '
@@ -333,7 +325,6 @@ class TvhPiconMixin(object):
 			if not jobs:
 				self._write_stamp(_PICON_STAMP, now)
 				self._log_picon('Nothing to download, stamp updated')
-				_picon_ready_event.set()
 				return
 
 			ok_count = [0]
@@ -453,10 +444,8 @@ class TvhPiconMixin(object):
 			                 other_err, aborted_count[0], _picon_404_count()))
 		except Exception as e:
 			self._log_picon('Worker exception: %s' % e)
-		finally:
-			# Vždy signalizuj – aj pri chybe – aby _post() nečakal zbytočne
-			_picon_ready_event.set()
 
+	@staticmethod
 	def _write_stamp(path, now):
 		try:
 			with open(path, 'w') as f:
@@ -550,6 +539,7 @@ class TvhPiconMixin(object):
 				out.append(p)
 		return out
 
+	@staticmethod
 	def _ctype_to_ext(ctype):
 		"""Content-Type -> prípona súboru."""
 		ctype = (ctype or '').lower().split(';')[0].strip()
@@ -565,6 +555,7 @@ class TvhPiconMixin(object):
 			return '.webp'
 		return '.png'  # default
 
+	@staticmethod
 	def _sniff_ext(data):
 		"""Zistí formát z magic bytes (prvých 16 bajtov)."""
 		if data[:8] == b'\x89PNG\r\n\x1a\n':

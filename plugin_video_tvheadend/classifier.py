@@ -273,13 +273,11 @@ _DVB_GENRE_TO_SUBCAT = {
 	0x18: _MV_DRAMA,       # Adult — drama
 }
 
-# DVB Level 2 nibble decoding (FIX 0.53beta — z Kodi 1.0.4 portu).
-# Keď je dostupný full 8-bit DVB genre kód (cca 6.5% entries), Level 2
-# nibble priamo určuje sub-kategóriu pre non-film/serial kategórie —
-# šport (0x40-0x4b), hudba (0x60-0x6b), arts (0x70-0x7b), dokumenty
-# (0x90-0x9f), hobby (0xa0-0xaf). Funkcie _dvb_l2_sport_subgenre atď.
-# použijú tieto mappingy pred keyword fallback-om (riešené v subgenre_fn
-# pre každú kategóriu).
+# Pozn. (audit 1.0.0): tu bol komentár popisujúci funkcie
+# _dvb_l2_sport_subgenre / _dvb_l2_music_subgenre atď. pre DVB Level 2
+# nibble decoding. Tie funkcie v tomto module nikdy neexistovali —
+# podžánre non-film kategórií rieši výhradne keyword scan cez
+# _make_subgenre_fn. Komentár odstránený aby nemýlil.
 
 # Keyword regex → sub-kategória. PORADIE má význam: high-specificity first
 # (krimi pred drama atď.).
@@ -979,7 +977,6 @@ _CHANNEL_TOP_HINTS = (
 	('mtv',         _CAT_HUDBA),
 	('vh1',         _CAT_HUDBA),
 	('mezzo',       _CAT_HUDBA),
-	('óčko',        _CAT_HUDBA),
 	# Dokumentárne kanály (FIX 0.53beta — z Kodi 1.0.4 portu).
 	# Broadcasters často taggujú obsah na týchto kanáloch ako ct=1
 	# (Movie/Drama) alebo ct=2 (News), čo nie je presné — drvivá väčšina
@@ -1022,8 +1019,14 @@ _CHANNEL_SUBCAT_HINTS = (
 
 
 def _channel_top_hint(entry):
-	"""Vráti top-level kategóriu na základe channelname, alebo None."""
-	ch = (entry.get('channelname') or '').lower()
+	"""Vráti top-level kategóriu na základe channelname, alebo None.
+
+	FIX 1.0.0 (audit): normalizácia cez _strip_accents_lower namiesto
+	obyčajného .lower(). Hinty sú písané bez diakritiky ('ct :d', 'ct24',
+	'decko'), takže reálne názvy kanálov 'ČT :D', 'ČT24', 'Déčko' sa
+	NIKDY nenamatchovali a padali do keyword fallbacku.
+	"""
+	ch = _strip_accents_lower(entry.get('channelname') or '')
 	if not ch:
 		return None
 	for substring, cat in _CHANNEL_TOP_HINTS:
@@ -1033,8 +1036,9 @@ def _channel_top_hint(entry):
 
 
 def _channel_subgenre_hint(entry):
-	"""Vráti sub-kategóriu na základe channelname, alebo None."""
-	ch = (entry.get('channelname') or '').lower()
+	"""Vráti sub-kategóriu na základe channelname, alebo None.
+	FIX 1.0.0 (audit): rovnaká normalizácia ako v _channel_top_hint."""
+	ch = _strip_accents_lower(entry.get('channelname') or '')
 	if not ch:
 		return None
 	for substring, subcat in _CHANNEL_SUBCAT_HINTS:

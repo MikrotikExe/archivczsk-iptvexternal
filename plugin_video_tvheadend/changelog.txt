@@ -1,4 +1,145 @@
 Tvheadend plugin pre archivCZSK
+Verzia 1.0.0 (03.09.2026) - PRVE STABILNE VYDANIE
+================================================================
+
+Prva stabilna verzia. Obsahom je kompletny audit doplnku, ktory odhalil
+a opravil niekolko chyb zavlecenych mixin refaktorom v 0.90.0 — vratane
+uplne nefunkcneho stahovania piconov.
+
+Kompletny audit doplnku (9060 riadkov, 24 modulov). Staticka analyza
+(py_compile, pyflakes, vlastne AST kontroly) + rucne prejdenie kazdeho
+modulu + spustenie kodu proti stubom frameworku. Kazdy nalez nizsie je
+overeny reprodukciou, nie len citanim.
+
+OPRAVENE CHYBY:
+
+  - KRITICKE: sťahovanie piconov bolo v 0.90.0 uplne nefunkcne.
+    Pri refaktore sa metody _write_stamp, _ctype_to_ext a _sniff_ext
+    presunuli z tvheadend.py do _picons.py, ale ich @staticmethod
+    dekoratory ostali v tvheadend.py. Dosledok:
+      a) _sniff_ext(data) sa volala ako self._sniff_ext(raw) -> TypeError
+         pri KAZDOM stiahnuti obrazka, takze nepresiel ani jeden picon;
+      b) _write_stamp sa nikdy nevykonala -> TTL stamp sa nezapisal a
+         picon worker sa spustal pri kazdom login-e nanovo;
+      c) tri osirele dekoratory sa zretazili na nasledujucu metodu _log,
+         takze kazde self._log(...) na objekte Tvheadend hodilo TypeError.
+         V _htsp_api.py na riadku 94 (vetva "EPG fetch neuplny") nebolo
+         volanie chranene -> pri neuplnom EPG fetchi spadol cely fetch.
+
+  - Plny refresh piconov necistil 404 cache: tvh_actions.py importoval
+    _picon_404_clear z .tvheadend, kde uz po refaktore nie je. Import
+    padal do except a kanaly s raz zlyhanou ikonou sa hodinu nestiahli
+    ani po vynutenom refreshi. Opravene na ._picons.
+
+  - IMDb lookup vracal neexistujuce identifikatory podzanrov:
+    'mv_dobrodr' a 'mv_animak' namiesto 'mv_dobrodruzny' a 'mv_animovany'.
+    Nahravky s IMDb zanrom Adventure / Animation / Family skoncili v
+    podzanri, ktory ziadne menu nevykresluje, a z Filmov/Serialov ticho
+    zmizli.
+
+  - Ceske kanaly s diakritikou sa nikdy nenamatchovali na channel hints.
+    _channel_top_hint / _channel_subgenre_hint porovnavali cez .lower(),
+    ale hinty su pisane bez diakritiky ('ct :d', 'ct24', 'decko'), takze
+    "CT :D", "CT24" ci "Decko" (s diakritikou) padali do keyword fallbacku
+    a klasifikovali sa zle. Teraz obe funkcie normalizuju cez
+    _strip_accents_lower.
+
+  - "https://server" bez portu skoncilo na porte 9982 (HTSP), kde HTTP API
+    nepocuva -> spojenie vzdy zlyhalo. Default je teraz 9981 pre obe
+    schemy.
+
+  - Vyhladavanie v archive nebolo zoradene. Triedilo sa podla 'start_real',
+    ktore existuje len v HTTP API entries; v HTSP mode maju zaznamy iba
+    'start', takze kluc bol pre vsetky 0. Teraz sa pouziva _ts().
+
+  - Limity archivu (archive_days_limit, dvr_limit) sa aplikovali IBA v
+    zozname kanalov. Kanal hlasil napr. "CT1 - 2 dni", ale po otvoreni
+    vypisal cely archiv. Vsetky pohlady archivu (dni, den, kategorie,
+    podzanre, serialy, vyhladavanie) teraz beru rovnake entries cez novy
+    helper _dvr_entries(). Orez na dvr_limit sa robi az po zoradeni od
+    najnovsich (predtym zavisel od poradia zo servera).
+
+  - HTSP: server pri prekroceni limitu suvbeznych spojeni odpoveda
+    {noaccess:1, connlimit:1}. Plugin testoval len 'noaccess' a hlasil
+    "HTSP autentifikacia zlyhala", co vyzera ako zle heslo. Pribudla
+    vynimka HTSPConnectionLimit s jasnou hlaskou + vlastny hint v menu.
+
+  - get_epg(): EPG cache sa buduje do lokalneho dictu a priradi az hotova
+    (rovnaky vzor ako load_channel_list po 0.59.7). Predtym mohol paralelny
+    bouquet refresh nastavit self._epg_cache = None uprostred exportu ->
+    polopostavena cache alebo AttributeError.
+
+  - Py2 kompatibilita v imdb_lookup.py: open(..., encoding=) a os.replace
+    su Py3-only a boli v try/except, takze na Py2 sa IMDb cache nikdy
+    nenacitala ani neulozila. Nahradene io.open + fallback za os.replace.
+    To iste pre urllib.parse import v _bouquet_dvb.py (bez neho by sa
+    picony pri remape stahovali bez auth).
+
+VYKON:
+
+  - watched_history.json sa citalo a parsovalo pri KAZDOM volani. Pri
+    vykresleni archivu vola _append_watch_markers() na kazdu polozku
+    _is_fully_watched() aj _get_watched_position() = 2 citania z disku +
+    2x json.load na jednu nahravku. Pri 300 polozkach to bolo 600
+    parsovani JSON-u na jedno otvorenie menu. Pridana in-memory cache
+    invalidovana podla mtime + velkosti suboru.
+
+ODSTRANENY MRTVY KOD (-67 riadkov cisto, pri +150 riadkoch komentarov):
+
+  - bouquet.refresh_userbouquet_start() a jej ~120-riadkovy _post()
+    callback. Volala BouquetXmlEpgGenerator.refresh_userbouquet_start(),
+    ktora vo frameworku VOBEC NEEXISTUJE (overene v tools_archivczsk:
+    generator/bouquet_xmlepg.py ma len refresh_bouquet, refresh_xmlepg,
+    refresh_xmlepg_start a bouquet_settings_changed). _post() navyse robil
+    presne to iste co refresh_bouquet() (_fix_radio_bouquet_filenames +
+    eDVBDB reload + OpenWebif reload). Jediny volajuci bola tiez mrtva
+    fallback vetva v tvh_actions._maybe_trigger_exports.
+
+  - _picon_ready_event v _picons.py — jediny cakatel bol prave odstraneny
+    _post(); event sa uz len nastavoval a nuloval.
+
+  - _DOWNLOAD_PICONS_LOCK (pozostatok po vlastnom picon flow zrusenom
+    v 0.57.0) a debounce stav _POST_CALLBACK_LOCK /
+    _LAST_POST_CALLBACK_TS / _POST_CALLBACK_DEBOUNCE_SEC.
+
+  - Nedosiahnutelna vetva `elif tvh_reason == 'unreachable'` v provider.root()
+    s druhou kopiou retry/hint poloziek — stav not tvh_ok sa riesi a
+    return-uje uz vyssie.
+
+  - Nastavenie "use_ticket_url" zo settings.xml. Bolo v UI ako
+    "recommended for Digest", ale ziadny kod ho nikdy necital (grep cez
+    doplnok aj framework: nula vyskytov). Do login_optional_settings_names
+    naopak pribudli 'connection_mode' a 'htsp_port' — ich zmena musi
+    vyvolat re-login, inak sa prepnutie HTTP/HTSP prejavi az po restarte.
+
+  - Nepouzity import HTTPDigestAuth v tvheadend.py (plugin ma vlastnu
+    HTTPDigestAuthMulti), prazdne sekcne komentare, nepouzita premenna
+    `stale` v recently_watched(), duplicitny hint ('ocko' pokryje aj
+    'ocko' s diakritikou po normalizacii).
+
+OPRAVENE ZAVADZAJUCE KOMENTARE:
+
+  - htsp.py tvrdil, ze obsahuje MPEG-TS muxer a lokalny HTTP proxy na
+    streamovanie — ten kod bol odstraneny, modul robi uz len metadata.
+  - Trieda Tvheadend tvrdila "Nevyuziva HTSP - vsetko ide cez REST JSON API".
+  - classifier.py popisoval funkcie _dvb_l2_*_subgenre, ktore v module
+    nikdy neexistovali.
+
+OVERENE, ZE NEJDE O CHYBU (falosne poplachy z auditu):
+
+  - Duplicitne _setting_enabled() v imdb_lookup.py (r. 122 a 155) — su to
+    E2 a standalone varianty v try/except ImportError, nie duplicita.
+  - IMDb top override sa NEZAHADZUJE — _classify_dvr_entry ho ignoruje,
+    ale _determine_top_cat ho pouziva v kroku 7c.
+  - get_channels_checksum / get_epg / get_xmlepg_channels / logged_in /
+    get_url_by_channel_key / stats vyzeraju nepouzite — su to framework
+    hooky, overene proti zdrojaku tools_archivczsk.
+
+STAV: py_compile aj pyflakes cisty, vsetkych 24 modulov sa importuje,
+smoke test menu (root, live, archiv, dni, kategorie, podzanre, serialy,
+vyhladavanie, nastavenia, play live, play DVR, stats) prejde bez vynimky.
+
+Tvheadend plugin pre archivCZSK
 Verzia 0.90.0 (14.06.2026)
 ================================================================
 

@@ -602,6 +602,14 @@ class ConnectionMixin(object):
 		if not err:
 			return None
 		e = str(err).lower()
+		# FIX 1.0.0 (audit): limit súbežných spojení sa musí rozlíšiť PRED
+		# ostatnými vzormi — hláška obsahuje slovo "spojen", ktoré by inak
+		# nesprávne padlo do všeobecnej sieťovej vetvy. Toto nie je porucha
+		# siete ani zlé heslo, len obsadený server.
+		if 'connlimit' in e or 'limit súbežných' in e or 'limit sucasnych' in e:
+			return self._("⚠ Tvheadend refused the connection — user connection "
+			              "limit reached (a stream is probably running). "
+			              "Credentials are fine.")
 		# Poradie matters — niektoré errors môžu mať viacero kľúčových slov
 		if ('name or service not known' in e or 'gaierror' in e or
 		    'getaddrinfo failed' in e or 'temporary failure in name resolution' in e or

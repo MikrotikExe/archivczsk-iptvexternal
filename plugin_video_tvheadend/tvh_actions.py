@@ -146,12 +146,15 @@ class ActionsMixin(object):
 		# často nenaplánoval (zdieľaný bgservice názov tasku + bouquet_refresh_running
 		# flag). Správna framework cesta je bouquet_settings_changed(), ktorá
 		# spoľahlivo reťazí refresh_bouquet → (callback) → refresh_xmlepg.
+		# FIX 1.0.0 (audit): fallback vetva volala refresh_userbouquet_start(),
+		# ktorá vo frameworku neexistuje (a plugin ju už tiež nemá). Ostal len
+		# zmysluplný fallback na refresh_xmlepg_start(), ktorý framework má.
 		try:
 			self._bouquet_gen.bouquet_settings_changed('manual_trigger', None)
-		except Exception:
-			# fallback na pôvodné volania ak by sa API frameworku zmenilo
+		except Exception as e:
 			try:
-				self._bouquet_gen.refresh_userbouquet_start()
+				self.log_error('[Tvheadend.bouquet] bouquet_settings_changed '
+				               'zlyhalo (%s) — skúšam len refresh_xmlepg_start' % e)
 			except Exception:
 				pass
 			try:
@@ -537,8 +540,13 @@ class ActionsMixin(object):
 
 					# 4) Vyčisti 404 cache (nech sa skúsia stiahnuť aj predtým
 					#    zlyhané)
+					# FIX 1.0.0 (audit): predtým `from .tvheadend import
+					# _picon_404_clear` — po refaktore 0.90.0 je táto funkcia
+					# v _picons.py, takže import vždy padol do except a 404
+					# cache sa pri plnom refreshi NEVYČISTILA (kanály ktoré
+					# raz dali 404 sa hodinu nesťahovali ani po force refreshi).
 					try:
-						from .tvheadend import _picon_404_clear
+						from ._picons import _picon_404_clear
 						_picon_404_clear()
 					except Exception:
 						pass

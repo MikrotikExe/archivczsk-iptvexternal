@@ -33,6 +33,34 @@ from .classifier import (
 
 
 class DvrMixin(object):
+	def _dvr_entries(self):
+		"""Vráti DVR nahrávky s aplikovanými limitmi z nastavení
+		(archive_days_limit, dvr_limit).
+
+		FIX 1.0.0 (audit): limity sa predtým aplikovali IBA v
+		archive_channels(). Zoznam kanálov teda ukazoval napr. "ČT1 - 8 dní",
+		ale po otvorení kanála sa vypísali všetky dni z archívu, lebo
+		archive_dates()/archive_day()/kategórie brali nefiltrované entries.
+		Rovnaké entries teraz dostávajú všetky pohľady archívu.
+		"""
+		entries = _get_dvr_finished_cached(self.tvh) or []
+		try:
+			days_limit = int(self.get_setting('archive_days_limit') or 0)
+			if days_limit > 0:
+				cutoff = time.time() - days_limit * 86400
+				entries = [e for e in entries if _ts(e) >= cutoff]
+		except Exception:
+			pass
+		try:
+			dvr_limit = int(self.get_setting('dvr_limit') or 0)
+			if dvr_limit > 0:
+				# Orež až po zoradení od najnovších, inak "max položiek"
+				# záviselo od poradia v akom ich vrátil server.
+				entries = sorted(entries, key=_ts, reverse=True)[:dvr_limit]
+		except Exception:
+			pass
+		return entries
+
 	def _dvr_info_labels(self, label_title, entry):
 		info = {'title': label_title}
 		if not isinstance(entry, dict):
@@ -93,7 +121,7 @@ class DvrMixin(object):
 			return
 
 		try:
-			entries  = _get_dvr_finished_cached(self.tvh)
+			entries  = self._dvr_entries()
 			channels = self.tvh.get_channels()
 		except Exception:
 			# FIX 0.48h: namiesto tichého empty → retry
@@ -116,21 +144,6 @@ class DvrMixin(object):
 				'number': int(ch.get('number') or 0),
 				'icon':   self.tvh.make_icon_url(ch.get('icon_public_url') or None)
 			}
-
-		# Aplikuj limity z nastavení
-		try:
-			days_limit = int(self.get_setting('archive_days_limit') or 0)
-			if days_limit > 0:
-				cutoff = time.time() - days_limit * 86400
-				entries = [e for e in entries if _ts(e) >= cutoff]
-		except Exception:
-			pass
-		try:
-			dvr_limit = int(self.get_setting('dvr_limit') or 0)
-			if dvr_limit > 0:
-				entries = entries[:dvr_limit]
-		except Exception:
-			pass
 
 		counts = {}
 		days   = {}
@@ -223,14 +236,12 @@ class DvrMixin(object):
 		                        reverse=True)
 
 		shown = 0
-		stale = 0
-		for uuid, hist_entry in sorted_history:
-			fresh_entry = by_uuid.get(uuid)
+		for _uuid, _hist_entry in sorted_history:
+			fresh_entry = by_uuid.get(_uuid)
 			if fresh_entry is None:
 				# Entry bola vymazaná z TVH archívu — preskoč.
 				# Mohli by sme ju aj odstrániť z history JSON, ale
 				# uložené dáta sú malé a možno sa entry obnoví neskôr.
-				stale += 1
 				continue
 			# Render rovnaký formát ako iné DVR menu (0.55beta:
 			# show_resume=True pridá " (▶ MM:SS)" sufix ak entry má
@@ -296,7 +307,7 @@ class DvrMixin(object):
 		query = _strip_accents_lower(keyword.strip())
 
 		try:
-			entries = _get_dvr_finished_cached(self.tvh) or []
+			entries = self._dvr_entries()
 		except Exception:
 			try:
 				self._invalidate_tvh_login_cache()
@@ -337,8 +348,12 @@ class DvrMixin(object):
 				})
 			return
 
-		# Sortuj podľa najnovších záznamov (start_real desc)
-		matches.sort(key=lambda e: e.get('start_real') or 0, reverse=True)
+		# Sortuj podľa najnovších záznamov.
+		# FIX 1.0.0 (audit): kľúč bol `e.get('start_real')`, ktorý existuje
+		# len v HTTP API entries. V HTSP móde majú entries iba 'start', takže
+		# kľúč bol pre všetky 0 a výsledky vyhľadávania neboli zoradené vôbec.
+		# _ts() zvládne oba tvary.
+		matches.sort(key=_ts, reverse=True)
 
 		# Limit + info ak je overflow
 		LIMIT = 200
@@ -374,7 +389,7 @@ class DvrMixin(object):
 			return
 
 		try:
-			entries = _get_dvr_finished_cached(self.tvh)
+			entries = self._dvr_entries()
 		except Exception:
 			# FIX 0.50beta: tiež retry namiesto tichého empty
 			try:
@@ -407,7 +422,7 @@ class DvrMixin(object):
 			return
 
 		try:
-			entries = _get_dvr_finished_cached(self.tvh)
+			entries = self._dvr_entries()
 		except Exception:
 			return
 
@@ -457,7 +472,7 @@ class DvrMixin(object):
 
 		try:
 			by_top, by_subcat, _counts, series_by_canonical, series_subcat_titles \
-				= _get_classified_dvr(_get_dvr_finished_cached(self.tvh))
+				= _get_classified_dvr(self._dvr_entries())
 		except Exception:
 			try:
 				self._invalidate_tvh_login_cache()
@@ -519,7 +534,7 @@ class DvrMixin(object):
 			return
 
 		try:
-			_by_top, by_subcat, _, _, _ = _get_classified_dvr(_get_dvr_finished_cached(self.tvh))
+			_by_top, by_subcat, _, _, _ = _get_classified_dvr(self._dvr_entries())
 		except Exception:
 			self.add_dir(self._("⟳ Failed to load — tap to retry"),
 			             cmd=self.action_retry_tvh_root,
@@ -544,7 +559,7 @@ class DvrMixin(object):
 			return
 
 		try:
-			_by_top, by_subcat, _, _, _ = _get_classified_dvr(_get_dvr_finished_cached(self.tvh))
+			_by_top, by_subcat, _, _, _ = _get_classified_dvr(self._dvr_entries())
 		except Exception:
 			self.add_dir(self._("⟳ Failed to load — tap to retry"),
 			             cmd=self.action_retry_tvh_root,
@@ -566,7 +581,7 @@ class DvrMixin(object):
 
 		try:
 			_, _, _, series_by_canonical, series_subcat_titles \
-				= _get_classified_dvr(_get_dvr_finished_cached(self.tvh))
+				= _get_classified_dvr(self._dvr_entries())
 		except Exception:
 			self.add_dir(self._("⟳ Failed to load — tap to retry"),
 			             cmd=self.action_retry_tvh_root,
@@ -607,7 +622,7 @@ class DvrMixin(object):
 			return
 
 		try:
-			_, _, _, series_by_canonical, _ = _get_classified_dvr(_get_dvr_finished_cached(self.tvh))
+			_, _, _, series_by_canonical, _ = _get_classified_dvr(self._dvr_entries())
 		except Exception:
 			self.add_dir(self._("⟳ Failed to load — tap to retry"),
 			             cmd=self.action_retry_tvh_root,

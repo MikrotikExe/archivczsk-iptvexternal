@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-htsp.py — HTSP klient pre Tvheadend (port 9982) s MPEG-TS muxom.
+htsp.py — HTSP klient pre Tvheadend (port 9982), IBA metadáta.
 
 Súčasť plugin_video_tvheadend. Poskytuje:
   - HTSP handshake + SHA1 digest auth
   - HTSMSG binárna serializácia
-  - načítanie kanálov, tagov, EPG, DVR cez HTSP
-  - MPEG-TS muxer (H264 + AAC -> TS) z muxpkt
-  - lokálny HTTP proxy na streamovanie (subscribe -> TS -> exteplayer3)
+  - načítanie kanálov, tagov, EPG, DVR cez enableAsyncMetadata
+
+Streamovanie cez HTSP (subscribe -> MPEG-TS mux -> lokálny proxy) tu
+NIE JE — bolo odstránené, lebo exteplayer3 nemá demuxer API ako Kodi
+pvr.hts. Aj v HTSP móde ide live aj DVR cez HTTP endpointy na 9981
+(viď _stream_urls.py). Docstring to do 0.90.0 tvrdil opačne.
+(FIX 1.0.0 — audit.)
 
 Overené: VU+ Uno4K SE, OpenATV, Python 3.13, HTSP v44.
 Py2/Py3 kompatibilné.
@@ -87,6 +91,19 @@ def _deser(data, is_list=False):
 
 def deserialize(data):
 	return _deser(data, False)
+
+
+class HTSPConnectionLimit(IOError):
+	"""Server odmietol spojenie kvôli limitu súbežných spojení daného
+	užívateľa (Access entry -> "Limit connections").
+
+	FIX 1.0.0 (audit): Tvheadend v takom prípade odpovie na `authenticate`
+	mapou {noaccess: 1, connlimit: 1} a spojenie zavrie. Predtým plugin
+	testoval iba `noaccess` a hlásil "HTSP autentifikácia zlyhala", čo
+	vyzerá ako zlé heslo — pritom prihlasovacie údaje sú v poriadku a
+	server je len obsadený (typicky beží live stream toho istého užívateľa).
+	"""
+	pass
 
 
 # ============================================================
@@ -173,7 +190,7 @@ class HTSPClient(object):
 		s = self._send('hello', {
 			'htspversion': HTSP_PROTO_VERSION,
 			'clientname': 'archivczsk-tvheadend',
-			'clientversion': '0.90.0',
+			'clientversion': '1.0.0',
 		})
 		r = self._recv_reply(s)
 		self.server_version = r.get('htspversion')
@@ -187,7 +204,13 @@ class HTSPClient(object):
 			s = self._send('authenticate', {'username': self.user, 'digest': digest})
 		else:
 			s = self._send('authenticate', {'username': self.user})
-		return not self._recv_reply(s).get('noaccess')
+		reply = self._recv_reply(s)
+		if reply.get('connlimit'):
+			raise HTSPConnectionLimit(
+				'Tvheadend odmietol HTSP spojenie: prekročený limit súbežných '
+				'spojení používateľa %r (Access entry -> Limit connections). '
+				'Prihlasovacie údaje sú v poriadku.' % (self.user or ''))
+		return not reply.get('noaccess')
 
 	# ---- metadata: kanály, tagy, EPG, DVR ----
 	def fetch_metadata(self, with_epg=False, timeout=None, epg_max_days=2,
