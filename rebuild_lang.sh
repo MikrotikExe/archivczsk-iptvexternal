@@ -25,7 +25,7 @@ mkdir -p $LOCALE_DIR
 
 for lang in cs sk ; do
 	# extract clean list of strings
-	xgettext -L python $PY_FILES --no-wrap --foreign-user --package-name=$ADDON --package-version='' --copyright-holder='' -o ${LOCALE_DIR}/${lang}.pot
+	xgettext -L python $PY_FILES --keyword=N_ --no-wrap --foreign-user --package-name=$ADDON --package-version='' --copyright-holder='' -o ${LOCALE_DIR}/${lang}.pot
 	sed -i 's/=CHARSET/=UTF-8/' ${LOCALE_DIR}/${lang}.pot
 
 	# extract strings from settings

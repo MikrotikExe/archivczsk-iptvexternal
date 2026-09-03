@@ -1,0 +1,893 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin_video_tvheadend\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-03 16:18+0000\n"
+"PO-Revision-Date: 2026-09-03 16:18+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: sk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: plugin_video_tvheadend/_stream_urls.py:75
+msgid "Missing channel/service identifier for streaming."
+msgstr "Chýba identifikátor kanála/služby pre streamovanie."
+
+#: plugin_video_tvheadend/classifier.py:218
+msgid "Movies"
+msgstr "Filmy"
+
+#: plugin_video_tvheadend/classifier.py:219
+msgid "Series"
+msgstr "Seriály"
+
+#: plugin_video_tvheadend/classifier.py:220
+msgid "Sport"
+msgstr "Šport"
+
+#: plugin_video_tvheadend/classifier.py:221
+msgid "News"
+msgstr "Spravodajstvo"
+
+#: plugin_video_tvheadend/classifier.py:222
+msgid "Shows / Entertainment"
+msgstr "Šou / Relácie"
+
+#: plugin_video_tvheadend/classifier.py:223
+msgid "Children"
+msgstr "Detské"
+
+#: plugin_video_tvheadend/classifier.py:224
+msgid "Music"
+msgstr "Hudba"
+
+#: plugin_video_tvheadend/classifier.py:225
+msgid "Arts / Culture"
+msgstr "Umenie / Kultúra"
+
+#: plugin_video_tvheadend/classifier.py:226
+msgid "Documentaries / Educational"
+msgstr "Dokumenty / Vzdelávacie"
+
+#: plugin_video_tvheadend/classifier.py:227
+msgid "Leisure / Hobby"
+msgstr "Voľný čas / Hobby"
+
+#: plugin_video_tvheadend/classifier.py:228
+msgid "Uncategorized"
+msgstr "Nezaradené"
+
+#: plugin_video_tvheadend/classifier.py:249
+msgid "Action"
+msgstr "Akčné"
+
+#: plugin_video_tvheadend/classifier.py:250
+msgid "Comedy"
+msgstr "Komédia"
+
+#: plugin_video_tvheadend/classifier.py:251
+msgid "Crime / Thriller / Detective"
+msgstr "Krimi / Thriller / Detektívka"
+
+#: plugin_video_tvheadend/classifier.py:252
+msgid "Drama"
+msgstr "Drama"
+
+#: plugin_video_tvheadend/classifier.py:253
+msgid "Sci-fi / Fantasy"
+msgstr "Sci-fi / Fantasy"
+
+#: plugin_video_tvheadend/classifier.py:254
+msgid "Romance"
+msgstr "Romantické"
+
+#: plugin_video_tvheadend/classifier.py:255
+msgid "Horror"
+msgstr "Horor"
+
+#: plugin_video_tvheadend/classifier.py:256
+msgid "Adventure"
+msgstr "Dobrodružné"
+
+#: plugin_video_tvheadend/classifier.py:257
+msgid "Animation"
+msgstr "Animované"
+
+#: plugin_video_tvheadend/classifier.py:258
+msgid "Historical / War"
+msgstr "Historické / Vojnové"
+
+#: plugin_video_tvheadend/classifier.py:259
+msgid "Western"
+msgstr "Western"
+
+#: plugin_video_tvheadend/classifier.py:260 plugin_video_tvheadend/classifier.py:355 plugin_video_tvheadend/classifier.py:479 plugin_video_tvheadend/classifier.py:521 plugin_video_tvheadend/classifier.py:571 plugin_video_tvheadend/classifier.py:606 plugin_video_tvheadend/classifier.py:643 plugin_video_tvheadend/classifier.py:681 plugin_video_tvheadend/classifier.py:731
+msgid "Other"
+msgstr "Iné"
+
+#: plugin_video_tvheadend/classifier.py:342
+msgid "Football"
+msgstr "Futbal"
+
+#: plugin_video_tvheadend/classifier.py:343
+msgid "Hockey"
+msgstr "Hokej"
+
+#: plugin_video_tvheadend/classifier.py:344
+msgid "Basketball"
+msgstr "Basketbal"
+
+#: plugin_video_tvheadend/classifier.py:345
+msgid "Tennis"
+msgstr "Tenis"
+
+#: plugin_video_tvheadend/classifier.py:346
+msgid "Volleyball"
+msgstr "Volejbal"
+
+#: plugin_video_tvheadend/classifier.py:347
+msgid "Handball"
+msgstr "Hádzaná"
+
+#: plugin_video_tvheadend/classifier.py:348
+msgid "Athletics"
+msgstr "Atletika"
+
+#: plugin_video_tvheadend/classifier.py:349
+msgid "Cycling"
+msgstr "Cyklistika"
+
+#: plugin_video_tvheadend/classifier.py:350
+msgid "Motorsport"
+msgstr "Motorsport"
+
+#: plugin_video_tvheadend/classifier.py:351
+msgid "Combat sports"
+msgstr "Bojové športy"
+
+#: plugin_video_tvheadend/classifier.py:352
+msgid "Winter sports"
+msgstr "Zimné športy"
+
+#: plugin_video_tvheadend/classifier.py:353
+msgid "Water sports"
+msgstr "Vodné športy"
+
+#: plugin_video_tvheadend/classifier.py:354
+msgid "Sports news"
+msgstr "Športové spravodajstvo"
+
+#: plugin_video_tvheadend/classifier.py:474
+msgid "Main news"
+msgstr "Hlavné správy"
+
+#: plugin_video_tvheadend/classifier.py:475
+msgid "Politics / Discussion"
+msgstr "Politika / Diskusie"
+
+#: plugin_video_tvheadend/classifier.py:476
+msgid "Crime / Reports"
+msgstr "Krimi / Reportáže"
+
+#: plugin_video_tvheadend/classifier.py:477
+msgid "Magazines / Lifestyle"
+msgstr "Magazíny / Lifestyle"
+
+#: plugin_video_tvheadend/classifier.py:478
+msgid "Weather"
+msgstr "Počasie"
+
+#: plugin_video_tvheadend/classifier.py:515
+msgid "Reality show"
+msgstr "Reality show"
+
+#: plugin_video_tvheadend/classifier.py:516
+msgid "Competition shows / Talents"
+msgstr "Súťažné show / Talenty"
+
+#: plugin_video_tvheadend/classifier.py:517
+msgid "Cooking shows"
+msgstr "Kuchárske show"
+
+#: plugin_video_tvheadend/classifier.py:518
+msgid "Talk show"
+msgstr "Talk show"
+
+#: plugin_video_tvheadend/classifier.py:519
+msgid "Entertainment / Comedy"
+msgstr "Zábava / Humor"
+
+#: plugin_video_tvheadend/classifier.py:520
+msgid "Magazines"
+msgstr "Magazíny"
+
+#: plugin_video_tvheadend/classifier.py:567
+msgid "Animated / Cartoons"
+msgstr "Animované / Kreslené"
+
+#: plugin_video_tvheadend/classifier.py:568
+msgid "Fairy tales"
+msgstr "Rozprávky"
+
+#: plugin_video_tvheadend/classifier.py:569
+msgid "Educational"
+msgstr "Vzdelávacie"
+
+#: plugin_video_tvheadend/classifier.py:570
+msgid "Movies for children"
+msgstr "Filmy pre deti"
+
+#: plugin_video_tvheadend/classifier.py:601
+msgid "Concerts"
+msgstr "Koncerty"
+
+#: plugin_video_tvheadend/classifier.py:602
+msgid "Classical music / Opera"
+msgstr "Klasická hudba / Opera"
+
+#: plugin_video_tvheadend/classifier.py:603
+msgid "Charts / Pop"
+msgstr "Hitparáda / Pop"
+
+#: plugin_video_tvheadend/classifier.py:604
+msgid "Folk / Country / Traditional"
+msgstr "Folk / Country / Ľudová"
+
+#: plugin_video_tvheadend/classifier.py:605
+msgid "Music magazines"
+msgstr "Hudobné magazíny"
+
+#: plugin_video_tvheadend/classifier.py:639
+msgid "Theater"
+msgstr "Divadlo"
+
+#: plugin_video_tvheadend/classifier.py:640
+msgid "Film art"
+msgstr "Filmové umenie"
+
+#: plugin_video_tvheadend/classifier.py:641
+msgid "Fine arts / Painting"
+msgstr "Výtvarné umenie / Maľba"
+
+#: plugin_video_tvheadend/classifier.py:642
+msgid "Literature / Books"
+msgstr "Literatúra / Knihy"
+
+#: plugin_video_tvheadend/classifier.py:675
+msgid "Nature / Animals"
+msgstr "Príroda / Zvieratá"
+
+#: plugin_video_tvheadend/classifier.py:676
+msgid "History / Archaeology"
+msgstr "História / Archeológia"
+
+#: plugin_video_tvheadend/classifier.py:677
+msgid "Science / Technology / Space"
+msgstr "Veda / Technika / Vesmír"
+
+#: plugin_video_tvheadend/classifier.py:678
+msgid "Travel / Geography"
+msgstr "Cestopisy / Geografia"
+
+#: plugin_video_tvheadend/classifier.py:679
+msgid "Society / Politics"
+msgstr "Spoločnosť / Politika"
+
+#: plugin_video_tvheadend/classifier.py:680
+msgid "Personalities / Biography"
+msgstr "Osobnosti / Biografie"
+
+#: plugin_video_tvheadend/classifier.py:724
+msgid "Garden"
+msgstr "Záhrada"
+
+#: plugin_video_tvheadend/classifier.py:725
+msgid "Living / Renovation"
+msgstr "Bývanie / Renovácie"
+
+#: plugin_video_tvheadend/classifier.py:726
+msgid "Cooking / Recipes"
+msgstr "Vaření / Recepty"
+
+#: plugin_video_tvheadend/classifier.py:727
+msgid "Auto / Moto"
+msgstr "Auto / Moto"
+
+#: plugin_video_tvheadend/classifier.py:728
+msgid "Travel"
+msgstr "Cestovanie"
+
+#: plugin_video_tvheadend/classifier.py:729
+msgid "Health / Fitness"
+msgstr "Zdravie / Fitness"
+
+#: plugin_video_tvheadend/classifier.py:730
+msgid "DIY / Crafts"
+msgstr "Kutilstvo / DIY"
+
+#: plugin_video_tvheadend/diagnostics.py:77
+msgid "Show paths and generated files"
+msgstr "Zobraziť cesty a vygenerované súbory"
+
+#: plugin_video_tvheadend/diagnostics.py:206 plugin_video_tvheadend/diagnostics.py:247 plugin_video_tvheadend/tvh_actions.py:288 plugin_video_tvheadend/tvh_actions.py:387 plugin_video_tvheadend/tvh_actions.py:411 plugin_video_tvheadend/tvh_actions.py:438 plugin_video_tvheadend/tvh_actions.py:598
+msgid "« Back"
+msgstr "« Späť"
+
+#: plugin_video_tvheadend/diagnostics.py:44
+msgid "Refresh TVH bouquet + XML EPG now"
+msgstr "Obnoviť TVH bouquet + XML EPG"
+
+#: plugin_video_tvheadend/diagnostics.py:50
+msgid "Download TVH picons now"
+msgstr "Stiahnuť TVH picony"
+
+#: plugin_video_tvheadend/diagnostics.py:55
+msgid "Force re-download all TVH picons (delete + fresh)"
+msgstr "Vynútiť opätovné stiahnutie všetkých TVH piconov (zmazať + nanovo)"
+
+#: plugin_video_tvheadend/diagnostics.py:61
+msgid "Clear 404 picon cache (retry broken icons)"
+msgstr "Vymazať cache rozbitých piconov (skúsiť stiahnuť znova)"
+
+#: plugin_video_tvheadend/diagnostics.py:64
+msgid "Invalidate TVH channel cache"
+msgstr "Zmazať cache kanálov TVH"
+
+#: plugin_video_tvheadend/diagnostics.py:67
+msgid "Test TVH login / connection"
+msgstr "Otestovať TVH login / spojenie"
+
+#: plugin_video_tvheadend/diagnostics.py:197
+msgid "✓ TVH login successful"
+msgstr "✓ TVH login úspešný"
+
+#: plugin_video_tvheadend/diagnostics.py:213
+msgid "Bouquets index"
+msgstr "Index bouquetov"
+
+#: plugin_video_tvheadend/diagnostics.py:214
+msgid "Picon directory"
+msgstr "Adresár piconov"
+
+#: plugin_video_tvheadend/diagnostics.py:217
+msgid "TVH refresh stamp"
+msgstr "Stamp obnovenia TVH"
+
+#: plugin_video_tvheadend/diagnostics.py:219
+msgid "Plugin data dir"
+msgstr "Dátový priečinok doplnku"
+
+#: plugin_video_tvheadend/diagnostics.py:221
+msgid "ArchivCZSK log"
+msgstr "ArchivCZSK log"
+
+#: plugin_video_tvheadend/diagnostics.py:73
+msgid "Diagnostics"
+msgstr "Diagnostika"
+
+#: plugin_video_tvheadend/diagnostics.py:79
+msgid "Paths"
+msgstr "Cesty"
+
+#: plugin_video_tvheadend/diagnostics.py:105
+msgid "never"
+msgstr "nikdy"
+
+#: plugin_video_tvheadend/diagnostics.py:145
+msgid "Configure TVH credentials in plugin settings"
+msgstr "Nastavte TVH prihlasovacie údaje v nastaveniach doplnku"
+
+#: plugin_video_tvheadend/diagnostics.py:199
+msgid "Channels: "
+msgstr "Kanály: "
+
+#: plugin_video_tvheadend/diagnostics.py:201
+msgid "Tags: "
+msgstr "Tagy: "
+
+#: plugin_video_tvheadend/diagnostics.py:42
+msgid "Tvheadend Actions"
+msgstr "Akcie Tvheadend"
+
+#: plugin_video_tvheadend/diagnostics.py:46
+msgid "Refresh TVH bouquet"
+msgstr "Obnoviť TVH bouquet"
+
+#: plugin_video_tvheadend/diagnostics.py:52
+msgid "TVH picons"
+msgstr "TVH picony"
+
+#: plugin_video_tvheadend/diagnostics.py:57
+msgid "Full picon refresh"
+msgstr "Plný refresh piconov"
+
+#: plugin_video_tvheadend/diagnostics.py:63
+msgid "Clear 404 cache"
+msgstr "Vymazať 404 cache"
+
+#: plugin_video_tvheadend/diagnostics.py:66
+msgid "Clear TVH cache"
+msgstr "Zmazať TVH cache"
+
+#: plugin_video_tvheadend/diagnostics.py:69
+msgid "Test login"
+msgstr "Test loginu"
+
+#: plugin_video_tvheadend/diagnostics.py:204
+msgid "✗ Login failed: "
+msgstr "✗ Login zlyhal: "
+
+#: plugin_video_tvheadend/diagnostics.py:245
+msgid " (missing)"
+msgstr " (chýba)"
+
+#: plugin_video_tvheadend/diagnostics.py:115
+msgid "TVH server"
+msgstr "TVH server"
+
+#: plugin_video_tvheadend/diagnostics.py:122
+msgid "Last TVH bouquet refresh"
+msgstr "Posledné obnovenie TVH bouquetu"
+
+#: plugin_video_tvheadend/diagnostics.py:137
+msgid "Picons with broken icons (404 cache)"
+msgstr "Picony s rozbitými ikonami (404 cache)"
+
+#: plugin_video_tvheadend/dvr.py:680 plugin_video_tvheadend/dvr.py:434
+msgid "Recording"
+msgstr "Nahrávanie"
+
+#: plugin_video_tvheadend/dvr.py:733
+msgid "DVR"
+msgstr "DVR"
+
+#: plugin_video_tvheadend/dvr.py:213
+msgid "History is empty — start watching something."
+msgstr "História je prázdna — pozri si najprv niečo."
+
+#: plugin_video_tvheadend/dvr.py:256
+msgid "Watched entries no longer exist in DVR archive."
+msgstr "Položky histórie už neexistujú v DVR archíve."
+
+#: plugin_video_tvheadend/dvr.py:303
+msgid "Please type at least 2 characters."
+msgstr "Zadaj prosím aspoň 2 znaky."
+
+#: plugin_video_tvheadend/dvr.py:634
+msgid "(no episodes found)"
+msgstr "(žiadne epizódy)"
+
+#: plugin_video_tvheadend/dvr.py:111 plugin_video_tvheadend/dvr.py:200 plugin_video_tvheadend/dvr.py:286 plugin_video_tvheadend/dvr.py:385 plugin_video_tvheadend/dvr.py:462 plugin_video_tvheadend/live.py:79
+msgid "⟳ TVH unreachable — tap to retry"
+msgstr "⟳ TVH nedostupný — kliknutím skúsiť znova"
+
+#: plugin_video_tvheadend/dvr.py:118 plugin_video_tvheadend/live.py:42
+msgid "✗ Tvheadend server not configured. Open Settings to fill in host, username, password."
+msgstr "✗ Tvheadend server nie je nakonfigurovaný. Otvor Nastavenia a vyplň server, meno a heslo."
+
+#: plugin_video_tvheadend/dvr.py:132 plugin_video_tvheadend/dvr.py:221 plugin_video_tvheadend/dvr.py:317 plugin_video_tvheadend/dvr.py:399 plugin_video_tvheadend/dvr.py:481
+msgid "⟳ Failed to load archive — tap to retry"
+msgstr "⟳ Zlyhalo načítanie archívu — kliknutím skúsiť znova"
+
+#: plugin_video_tvheadend/dvr.py:296 plugin_video_tvheadend/dvr.py:468
+msgid "✗ Tvheadend server not configured."
+msgstr "✗ Tvheadend server nie je nakonfigurovaný."
+
+#: plugin_video_tvheadend/dvr.py:343
+msgid "✗ Nothing found for: %s"
+msgstr "✗ Nič sa nenašlo pre: %s"
+
+#: plugin_video_tvheadend/dvr.py:363
+msgid "Found %d results — showing first %d (most recent). Refine the search for fewer results."
+msgstr "Nájdených %d výsledkov — zobrazujem prvých %d (najnovšie). Spresni hľadanie pre menej výsledkov."
+
+#: plugin_video_tvheadend/dvr.py:369
+msgid "Found %d result(s) for: %s"
+msgstr "Nájdené %d výsledok(y) pre: %s"
+
+#: plugin_video_tvheadend/dvr.py:539 plugin_video_tvheadend/dvr.py:564 plugin_video_tvheadend/dvr.py:586 plugin_video_tvheadend/dvr.py:627
+msgid "⟳ Failed to load — tap to retry"
+msgstr "⟳ Načítanie zlyhalo — ťuknite pre opakovanie"
+
+#: plugin_video_tvheadend/dvr.py:176
+msgid "days"
+msgstr "dní"
+
+#: plugin_video_tvheadend/dvr.py:214 plugin_video_tvheadend/dvr.py:257 plugin_video_tvheadend/provider.py:260 plugin_video_tvheadend/provider.py:262
+msgid "Recently watched"
+msgstr "Posledné sledované"
+
+#: plugin_video_tvheadend/dvr.py:304 plugin_video_tvheadend/dvr.py:345 plugin_video_tvheadend/dvr.py:365 plugin_video_tvheadend/dvr.py:370
+msgid "Search"
+msgstr "Vyhľadávanie"
+
+#: plugin_video_tvheadend/dvr.py:346
+msgid "Try a shorter or simpler query. Diacritics are ignored."
+msgstr "Skús kratšie alebo jednoduchšie zadanie. Diakritika sa ignoruje."
+
+#: plugin_video_tvheadend/dvr.py:113 plugin_video_tvheadend/dvr.py:202 plugin_video_tvheadend/dvr.py:288 plugin_video_tvheadend/dvr.py:387 plugin_video_tvheadend/dvr.py:464 plugin_video_tvheadend/live.py:30 plugin_video_tvheadend/live.py:81
+msgid "Retry TVH"
+msgstr "Skúsiť znova"
+
+#: plugin_video_tvheadend/dvr.py:120 plugin_video_tvheadend/dvr.py:298 plugin_video_tvheadend/dvr.py:470 plugin_video_tvheadend/live.py:44
+msgid "TVH not configured"
+msgstr "TVH nie je nastavený"
+
+#: plugin_video_tvheadend/dvr.py:134 plugin_video_tvheadend/dvr.py:223 plugin_video_tvheadend/dvr.py:319 plugin_video_tvheadend/dvr.py:401 plugin_video_tvheadend/dvr.py:483 plugin_video_tvheadend/dvr.py:541 plugin_video_tvheadend/dvr.py:566 plugin_video_tvheadend/dvr.py:588 plugin_video_tvheadend/dvr.py:629 plugin_video_tvheadend/live.py:60 plugin_video_tvheadend/live.py:96 plugin_video_tvheadend/provider.py:175
+msgid "Retry"
+msgstr "Skúsiť znova"
+
+#: plugin_video_tvheadend/dvr.py:207 plugin_video_tvheadend/dvr.py:293 plugin_video_tvheadend/live.py:36 plugin_video_tvheadend/provider.py:184
+msgid "Open settings"
+msgstr "Otvoriť nastavenia"
+
+#: plugin_video_tvheadend/live.py:47
+msgid "All"
+msgstr "Všetky"
+
+#: plugin_video_tvheadend/live.py:165
+msgid "Live stream"
+msgstr "Živý stream"
+
+#: plugin_video_tvheadend/live.py:28
+msgid "⟳ TVH temporarily unreachable — tap to retry"
+msgstr "⟳ TVH dočasne nedostupný — kliknutím skúsiť znova"
+
+#: plugin_video_tvheadend/live.py:58
+msgid "⟳ Failed to load categories — tap to retry"
+msgstr "⟳ Načítanie kategórií zlyhalo — ťuknite pre opakovanie"
+
+#: plugin_video_tvheadend/live.py:94
+msgid "⟳ Failed to load channels — tap to retry"
+msgstr "⟳ Načítanie kanálov zlyhalo — ťuknite pre opakovanie"
+
+#: plugin_video_tvheadend/provider.py:271 plugin_video_tvheadend/provider.py:188 plugin_video_tvheadend/provider.py:273 plugin_video_tvheadend/provider.py:190
+msgid "Settings"
+msgstr "Nastavenia"
+
+#: plugin_video_tvheadend/provider.py:223 plugin_video_tvheadend/provider.py:225
+msgid "Live TV"
+msgstr "Živé vysielanie"
+
+#: plugin_video_tvheadend/provider.py:226 plugin_video_tvheadend/provider.py:228
+msgid "Archive"
+msgstr "Archív"
+
+#: plugin_video_tvheadend/provider.py:173
+msgid "⟳ Retry TVH connection"
+msgstr "⟳ Skúsiť znova pripojenie k TVH"
+
+#: plugin_video_tvheadend/provider.py:176
+msgid "TVH temporarily unreachable. Auto-recovery polling in background."
+msgstr "TVH dočasne nedostupný. Automatické obnovenie beží na pozadí."
+
+#: plugin_video_tvheadend/provider.py:179
+msgid "TVH status"
+msgstr "Stav TVH"
+
+#: plugin_video_tvheadend/provider.py:216
+msgid "Search archive"
+msgstr "Hľadať v archíve"
+
+#: plugin_video_tvheadend/tvh_actions.py:189 plugin_video_tvheadend/tvh_actions.py:322 plugin_video_tvheadend/tvh_actions.py:456
+msgid "✗ TVH login failed - check settings"
+msgstr "✗ TVH login zlyhal - skontroluj nastavenia"
+
+#: plugin_video_tvheadend/tvh_actions.py:193
+msgid "✗ Bouquet generator not initialised"
+msgstr "✗ Bouquet generátor nie je inicializovaný"
+
+#: plugin_video_tvheadend/tvh_actions.py:279
+msgid "✓ Full TVH bouquet refresh started in background (fresh channels + regenerate)"
+msgstr "✓ Plný refresh TVH bouquetu spustený na pozadí (čerstvé kanály + regenerácia)"
+
+#: plugin_video_tvheadend/tvh_actions.py:282
+msgid "Progress: see /tmp/archivCZSK.log (filter '[Tvheadend.bouquet')"
+msgstr "Priebeh: pozri /tmp/archivCZSK.log (filter '[Tvheadend.bouquet')"
+
+#: plugin_video_tvheadend/tvh_actions.py:381
+msgid "Progress: see /tmp/archivCZSK.log (filter '[plugin.tvheadend')"
+msgstr "Priebeh: pozri /tmp/archivCZSK.log (filter '[plugin.tvheadend')"
+
+#: plugin_video_tvheadend/tvh_actions.py:404
+msgid "✓ TVH channel cache cleared"
+msgstr "✓ Cache kanálov TVH vymazaná"
+
+#: plugin_video_tvheadend/tvh_actions.py:406
+msgid "Next channel listing will fetch fresh data"
+msgstr "Ďalšie načítanie kanálov stiahne čerstvé dáta"
+
+#: plugin_video_tvheadend/tvh_actions.py:426
+msgid "Next picon refresh will retry all broken icons"
+msgstr "Ďalší refresh piconov skúsi znova všetky rozbité ikony"
+
+#: plugin_video_tvheadend/tvh_actions.py:589
+msgid "✓ Full picon refresh started in background (deleting old TVH picons + re-downloading)"
+msgstr "✓ Plný refresh piconov spustený na pozadí (mažem staré TVH picony + sťahujem nanovo)"
+
+#: plugin_video_tvheadend/tvh_actions.py:592
+msgid "Progress: see /tmp/archivCZSK.log (filter '[Tvheadend.picons')"
+msgstr "Priebeh: pozri /tmp/archivCZSK.log (filter '[Tvheadend.picons')"
+
+#: plugin_video_tvheadend/tvh_actions.py:375
+msgid "✓ TVH picon /tmp cache update started (framework download disabled — enable 'Automatically download picons' in Userbouquet settings)"
+msgstr "✓ Aktualizácia /tmp cache piconov spustená (sťahovanie cez framework je vypnuté — zapnite 'Automaticky sťahovať picony' v nastaveniach Userbouquet)"
+
+#: plugin_video_tvheadend/tvh_actions.py:424
+msgid "✓ 404 picon cache cleared (was: %d entries)"
+msgstr "✓ Cache rozbitých piconov vyčistená (bolo: %d položiek)"
+
+#: plugin_video_tvheadend/tvh_actions.py:431
+msgid "✓ Picon download retry triggered in background"
+msgstr "✓ Opätovné sťahovanie piconov spustené na pozadí"
+
+#: plugin_video_tvheadend/tvh_actions.py:286 plugin_video_tvheadend/tvh_actions.py:385 plugin_video_tvheadend/tvh_actions.py:409 plugin_video_tvheadend/tvh_actions.py:436 plugin_video_tvheadend/tvh_actions.py:596
+msgid "✗ Error: "
+msgstr "✗ Chyba: "
+
+#: plugin_video_tvheadend/tvh_actions.py:368
+msgid "✓ Bouquet refresh + TVH picon download started in background"
+msgstr "✓ Refresh bouquetu + sťahovanie TVH piconov spustené na pozadí"
+
+#: plugin_video_tvheadend/tvh_actions.py:371
+msgid "✓ TVH picon /tmp cache update started (framework download skipped: %s)"
+msgstr "✓ Aktualizácia /tmp cache piconov spustená (sťahovanie cez framework preskočené: %s)"
+
+#: plugin_video_tvheadend/tvh_connection.py:610
+msgid "⚠ Tvheadend refused the connection — user connection limit reached (a stream is probably running). Credentials are fine."
+msgstr "⚠ Tvheadend odmietol spojenie — dosiahnutý limit spojení používateľa (pravdepodobne beží stream). Prihlasovacie údaje sú v poriadku."
+
+#: plugin_video_tvheadend/tvh_connection.py:617
+msgid "⚠ Server name not found — check 'host' field in Settings"
+msgstr "⚠ Meno servera nenájdené — skontroluj pole 'host' v Nastaveniach"
+
+#: plugin_video_tvheadend/tvh_connection.py:619
+msgid "⚠ Connection refused — wrong port, or TVH server not running"
+msgstr "⚠ Pripojenie odmietnuté — zlý port alebo TVH server nebeží"
+
+#: plugin_video_tvheadend/tvh_connection.py:621
+msgid "⚠ Connection timeout — check IP/host, network and firewall"
+msgstr "⚠ Časový limit vypršal — skontroluj IP/host, sieť a firewall"
+
+#: plugin_video_tvheadend/tvh_connection.py:623
+msgid "⚠ Authentication failed — check username and password"
+msgstr "⚠ Prihlásenie zlyhalo — skontroluj meno a heslo"
+
+#: plugin_video_tvheadend/tvh_connection.py:625
+msgid "⚠ Forbidden — TVH user lacks API permissions"
+msgstr "⚠ Zakázané — TVH užívateľ nemá API oprávnenia"
+
+#: plugin_video_tvheadend/tvh_connection.py:627
+msgid "⚠ API endpoint not found — wrong TVH version or path?"
+msgstr "⚠ API endpoint nenájdený — zlá verzia TVH alebo cesta?"
+
+#: plugin_video_tvheadend/tvh_connection.py:629
+msgid "⚠ No route to host — check network connection"
+msgstr "⚠ Žiadna trasa k serveru — skontroluj sieťové pripojenie"
+
+#: plugin_video_tvheadend/tvh_connection.py:631
+msgid "⚠ SSL/certificate error — try disabling HTTPS or fix cert"
+msgstr "⚠ SSL/certifikát chyba — vypni HTTPS alebo oprav certifikát"
+
+#: plugin_video_tvheadend/tvh_connection.py:649
+msgid "Last error"
+msgstr "Posledná chyba"
+
+#: plugin_video_tvheadend/tvh_connection.py:649
+msgid "Detail"
+msgstr "Detail"
+
+#: plugin_video_tvheadend/tvh_connection.py:53
+msgid "To display content, you must enter TVH server (host, username, password) in the addon settings"
+msgstr "Pre zobrazenie obsahu je potrebné zadať TVH server (host, prihlasovacie meno, heslo) v nastaveniach doplnku"
+
+#: plugin_video_tvheadend/tvheadend.py:266
+msgid "Missing Tvheadend server address in settings."
+msgstr "V nastaveniach chýba adresa Tvheadend servera."
+
+#: plugin_video_tvheadend/tvheadend.py:405 plugin_video_tvheadend/tvheadend.py:394
+msgid "Tvheadend API request failed."
+msgstr "Požiadavka na Tvheadend API zlyhala."
+
+#: plugin_video_tvheadend/tvheadend.py:387
+msgid "Tvheadend returned invalid JSON."
+msgstr "Tvheadend vrátil neplatný JSON."
+
+#. resources/settings.xml
+msgid "Server (IP/domain or URL)"
+msgstr "Server (IP/doména alebo URL)"
+
+#. resources/settings.xml
+msgid "Connection mode"
+msgstr "Režim pripojenia"
+
+#. resources/settings.xml
+msgid "HTTP API (9981)"
+msgstr ""
+
+#. resources/settings.xml
+msgid "HTSP (9982)"
+msgstr ""
+
+#. resources/settings.xml
+msgid "Port"
+msgstr "Port"
+
+#. resources/settings.xml
+msgid "HTSP port"
+msgstr "HTSP port"
+
+#. resources/settings.xml
+msgid "Use HTTPS"
+msgstr "Použiť HTTPS"
+
+#. resources/settings.xml
+msgid "Username"
+msgstr "Meno"
+
+#. resources/settings.xml
+msgid "Password"
+msgstr "Heslo"
+
+#. resources/settings.xml
+msgid "HTTP authentication"
+msgstr "HTTP autentifikácia"
+
+#. resources/settings.xml
+msgid "Auto"
+msgstr "Auto"
+
+#. resources/settings.xml
+msgid "Digest"
+msgstr "Digest"
+
+#. resources/settings.xml
+msgid "Basic"
+msgstr "Basic"
+
+#. resources/settings.xml
+msgid "None"
+msgstr "Žiadna"
+
+#. resources/settings.xml
+msgid "TVH stream profile"
+msgstr "TVH stream profil"
+
+#. resources/settings.xml
+msgid "pass"
+msgstr ""
+
+#. resources/settings.xml
+msgid "mpegts"
+msgstr ""
+
+#. resources/settings.xml
+msgid "matroska"
+msgstr ""
+
+#. resources/settings.xml
+msgid "htsp"
+msgstr ""
+
+#. resources/settings.xml
+msgid "webtv-h264-aac-matroska"
+msgstr ""
+
+#. resources/settings.xml
+msgid "webtv-h264-aac-mpegts"
+msgstr ""
+
+#. resources/settings.xml
+msgid "Timeout (seconds)"
+msgstr "Časový limit (sekundy)"
+
+#. resources/settings.xml
+msgid "In-app player (live + DVR)"
+msgstr "Prehrávač v doplnku (live + DVR)"
+
+#. resources/settings.xml
+msgid "Default"
+msgstr "Predvolené"
+
+#. resources/settings.xml
+msgid "DVB (OE>=2.5)"
+msgstr "DVB (OE>=2.5)"
+
+#. resources/settings.xml
+msgid "Userbouquet"
+msgstr "Userbouquet"
+
+#. resources/settings.xml
+msgid "Automatically export channel list as userbouquet"
+msgstr "Automaticky exportovať zoznam kanálov ako userbouquet"
+
+#. resources/settings.xml
+msgid "Auto-refresh bouquet + EPG interval"
+msgstr "Interval automatického obnovenia bouquetu + EPG"
+
+#. resources/settings.xml
+msgid "Disabled"
+msgstr "Vypnuté"
+
+#. resources/settings.xml
+msgid "4 hours"
+msgstr "4 hodiny"
+
+#. resources/settings.xml
+msgid "8 hours"
+msgstr "8 hodín"
+
+#. resources/settings.xml
+msgid "16 hours"
+msgstr "16 hodín"
+
+#. resources/settings.xml
+msgid "24 hours"
+msgstr "24 hodín"
+
+#. resources/settings.xml
+msgid "Allow creating userbouquet for radios"
+msgstr "Povoliť vytvorenie userbouquet pre rádiá"
+
+#. resources/settings.xml
+msgid "Add category names to userbouquet"
+msgstr "Pridať názvy kategórií do userbouquet"
+
+#. resources/settings.xml
+msgid "Custom bouquet display name (TV)"
+msgstr "Vlastný názov prehľadu (TV)"
+
+#. resources/settings.xml
+msgid "Custom bouquet display name (Radio)"
+msgstr "Vlastný názov prehľadu (Rádio)"
+
+#. resources/settings.xml
+msgid "Auto-inject EPG into Enigma2 (no epgimport plugin needed)"
+msgstr "Automaticky vkladať EPG do Enigma2 (bez epgimport pluginu)"
+
+#. resources/settings.xml
+msgid "Automatically download picons when exporting userbouquet"
+msgstr "Automaticky sťahovať picony pri exporte userbouquet"
+
+#. resources/settings.xml
+msgid "For how many days to keep Enigma2 EPG history"
+msgstr "Pre koľko dní uchovať históriu Enigma2 EPG"
+
+#. resources/settings.xml
+msgid "Player used for userbouquet"
+msgstr "Prehrávač pre userbouquet"
+
+#. resources/settings.xml
+msgid "Default"
+msgstr "Predvolené"
+
+#. resources/settings.xml
+msgid "gstplayer"
+msgstr "gstplayer"
+
+#. resources/settings.xml
+msgid "exteplayer3"
+msgstr "exteplayer3"
+
+#. resources/settings.xml
+msgid "DVB (OE>=2.5)"
+msgstr "DVB (OE>=2.5)"
+
+#. resources/settings.xml
+msgid "Archive: max items from DVR"
+msgstr "Archív: max. položiek z DVR"
+
+#. resources/settings.xml
+msgid "Archive: max number of days (0=no limit)"
+msgstr "Archív: max. počet dní (0=bez limitu)"
+
+#. resources/settings.xml
+msgid "Continue playback (remember last position)"
+msgstr "Pokračovať v prehrávaní (pamätať poslednú pozíciu)"
+
+#. resources/settings.xml
+msgid "Look up unknown titles on IMDb (background, opt-in)"
+msgstr "Online vyhľadať neznáme tituly na IMDb (na pozadí, opt-in)"
