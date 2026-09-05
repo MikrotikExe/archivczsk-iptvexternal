@@ -1,4 +1,57 @@
 Tvheadend plugin pre archivCZSK
+Verzia 1.0.1 (05.09.2026)
+================================================================
+
+Opravne vydanie na zaklade analyzy realneho archivCZSK.log z prijimaca
+(9220 riadkov, dva dni behu, 686 HTSP spojeni). Oprava piconov z 1.0.0
+je v logu potvrdena: 'Done: ok=472, err=115 (404=115, other=0)' — v 0.90.0
+by tento riadok nikdy nevznikol.
+
+  - HLAVNE: limit sucasnych spojeni na Tvheadend serveri uz nezhodi doplnok.
+    Ked server odmietne spojenie preto, ze uzivatel dosiahol "Limit
+    connections" v Access entry (typicky preto, ze na pozadi bezi live
+    kanal), doplnok to teraz rozpozna a:
+      * vrati posledne znama metadata z cache bez ohladu na ich vek, takze
+        Archiv, EPG aj zoznam kanalov ostanu pouzitelne;
+      * NEoznaci server za nedostupny — predtym sa stav vyhodnotil ako
+        'unreachable', menu sa preplo do chyboveho rezimu a este sa spustil
+        fast-recovery poll, ktory kazdych 10 sekund 30x za sebou skusal
+        dalsie spojenia, vsetky rovnako odmietnute;
+      * ak ziadna cache este nie je, vypise zrozumitelnu hlasku o obsadenom
+        serveri namiesto vseobecneho "nepodarilo sa nacitat".
+
+  - Kontrola dostupnosti servera v HTSP rezime ide teraz najprv cez HTTP
+    api/serverinfo a plny HTSP handshake sa pouzije az ako zaloha. Dovod:
+    watchdog vola tuto kontrolu kazdych 5 minut, co v logu predstavovalo
+    presne 12 HTSP spojeni za hodinu a takmer 300 denne — kazde z nich
+    TCP connect + hello + SHA1 auth len na zistenie, ci server zije.
+    HTTP endpointy api/* v Tvheadende navyse cez limiter spojeni vobec
+    neprechadzaju, takze kontrola prejde aj vtedy, ked HTSP odmieta.
+    Vysledok sondy sa pamata; pri serveri bez HTTP pristupu sa po hodine
+    skusi znova.
+
+  - BEZPECNOST: prihlasovacie udaje k TVH serveru sa uz nezapisuju do logu.
+    Riadok 'load_channel_list: ... Sample picon URL' vypisoval picon URL
+    aj s inline credentials (http://meno:heslo@server/...). V dvojdnovom
+    logu 36x. Kazdy, kto priloz archivCZSK.log k hlaseniu chyby, tym
+    zverejnil svoje meno a heslo. Teraz sa maskuje na http://***@server/...
+
+  - Early-abort pri stahovani piconov uz berie do uvahy uz stiahnute ikony.
+    Podmienka sa pozerala len na uspechy v aktualnom behu, takze ked mal
+    server vacsinu piconov v cache a dostahovavalo sa len par poslednych
+    rozbitych, prerusenie naskocilo zbytocne a oznacilo aj nevyskusane
+    kanaly ako 404. Ak uz nieco v cache je, server picony evidentne ma
+    a dovod na prerusenie neplati.
+
+  - Doplnene SK/CZ preklady novych hlasok. Odstranene duplicitne zaznamy
+    v sk.po/cs.po (msgfmt ich odmietal, release build by zlyhal).
+
+Overene simulaciou odmietnuteho spojenia (14 kontrol): stale cache,
+vyhodnotenie stavu, nespustenie fast-recovery, vykreslenie Archivu aj
+Live TV pocas obsadeneho servera, hlaska bez cache, navrat do normalu
+a prednost HTTP kontroly pred HTSP.
+
+Tvheadend plugin pre archivCZSK
 Verzia 1.0.0 (03.09.2026) - PRVE STABILNE VYDANIE
 ================================================================
 

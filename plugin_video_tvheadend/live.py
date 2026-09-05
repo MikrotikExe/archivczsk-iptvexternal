@@ -87,6 +87,8 @@ class LiveMixin(object):
 			channels = self.tvh.get_channels_by_tag(cat_id) if cat_id else self.tvh.get_channels()
 		except Exception:
 			# FIX 0.48h: rovnaký pattern — invaliduj cache + ponúkni retry
+			if self._add_connlimit_notice():
+				return
 			try:
 				self._invalidate_tvh_login_cache()
 			except Exception:

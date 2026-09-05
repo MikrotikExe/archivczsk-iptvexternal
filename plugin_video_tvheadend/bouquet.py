@@ -2,6 +2,7 @@
 
 import hashlib
 import os
+import re
 import time
 
 # FIX 0.57.0 (skyjet PR #22 review): urllib Py2/Py3 fallback nahradený
@@ -39,6 +40,22 @@ from ._bouquet_dvb import BouquetDvbMixin
 # `_POST_CALLBACK_LOCK` / `_LAST_POST_CALLBACK_TS` / `_POST_CALLBACK_DEBOUNCE_SEC`,
 # ktorý slúžil výhradne metóde refresh_userbouquet_start() — tá je tiež
 # odstránená, viď poznámku pri refresh_bouquet().
+
+
+# FIX 1.0.1: maskovanie prihlasovacich udajov v URL pred zapisom do logu.
+# Pouziva sa vsade, kde by sa do archivCZSK.log mohla dostat URL v tvare
+# scheme://user:heslo@host/cesta.
+_CREDS_IN_URL = re.compile(r'(?P<scheme>[a-zA-Z][a-zA-Z0-9+.-]*://)[^/@\s]+@')
+
+
+def _mask_credentials(url):
+	"""Nahradi user:heslo v URL za ***. Nie-URL hodnoty vrati nezmenene."""
+	if not url:
+		return url
+	try:
+		return _CREDS_IN_URL.sub(lambda m: m.group('scheme') + '***@', str(url))
+	except Exception:
+		return '***'
 
 
 # FIX 0.57.0: framework BouquetGeneratorTemplate.download_picons() volá
@@ -478,9 +495,15 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 			with_picon = sum(1 for c in self._channels if c.get('picon'))
 			without_picon = len(self._channels) - with_picon
 			sample = next((c['picon'] for c in self._channels if c.get('picon')), None)
+			# FIX 1.0.1: URL piconu obsahuje inline credentials
+			# (http://user:heslo@host/...). Tento riadok sa do logu zapisal pri
+			# kazdom load_channel_list — v dvojdnovom logu 36x — takze kazdy,
+			# kto priloz archivCZSK.log k hlaseniu chyby, zverejnil svoje meno
+			# a heslo k TVH serveru. Maskujeme.
 			self._log("load_channel_list: %d channels total, %d with picon URL, %d without. "
 			          "Sample picon URL: %r" % (len(self._channels), with_picon,
-			                                     without_picon, sample))
+			                                     without_picon,
+			                                     _mask_credentials(sample)))
 		except Exception:
 			pass
 

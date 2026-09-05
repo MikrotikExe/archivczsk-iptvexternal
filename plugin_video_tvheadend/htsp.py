@@ -190,7 +190,7 @@ class HTSPClient(object):
 		s = self._send('hello', {
 			'htspversion': HTSP_PROTO_VERSION,
 			'clientname': 'archivczsk-tvheadend',
-			'clientversion': '1.0.0',
+			'clientversion': '1.0.1',
 		})
 		r = self._recv_reply(s)
 		self.server_version = r.get('htspversion')

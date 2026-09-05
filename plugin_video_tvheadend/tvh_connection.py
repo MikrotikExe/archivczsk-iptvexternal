@@ -476,6 +476,19 @@ class ConnectionMixin(object):
 			except Exception as e2:
 				err = str(e2)
 
+		# FIX 1.0.1: odmietnutie pre limit sucasnych spojeni NIE JE vypadok.
+		# Server bezi, len je obsadeny (typicky bezi live stream). Predtym sa
+		# to vyhodnotilo ako 'unreachable', plugin sa prepol do chyboveho menu
+		# a este spustil fast-recovery poll, ktory kazdych 10 sekund 30x za
+		# sebou skusal dalsie spojenia — vsetky rovnako odmietnute.
+		if not ok:
+			try:
+				if self.tvh.htsp_connlimit_active():
+					ok = True
+					err = ''
+			except Exception:
+				pass
+
 		c['ts'] = now
 		c['ok'] = ok
 		c['reason'] = 'ok' if ok else 'unreachable'
@@ -488,6 +501,22 @@ class ConnectionMixin(object):
 				pass
 
 		return ok
+
+	def _add_connlimit_notice(self):
+		"""FIX 1.0.1: ak server prave odmieta spojenia pre limit, vysvetli to
+		uzivatelovi namiesto vseobecneho "nepodarilo sa nacitat". Vrati True
+		ak polozku pridala."""
+		try:
+			if not self.tvh.htsp_connlimit_active():
+				return False
+		except Exception:
+			return False
+		self.add_dir(self._("Tvheadend refused the connection — user connection "
+		                    "limit reached (a stream is probably running). "
+		                    "Showing last known data."),
+		             cmd=self.action_retry_tvh_root,
+		             info_labels={'title': self._("Server busy")})
+		return True
 
 
 	def get_tvh_state(self):

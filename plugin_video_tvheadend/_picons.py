@@ -330,6 +330,10 @@ class TvhPiconMixin(object):
 			ok_count = [0]
 			err_count = [0]
 			err_404_count = [0]  # FIX 0.48b: tracknúť 404 zvlášť
+			# FIX 1.0.1: ak uz mame v /tmp cache stiahnute picony, server ich
+			# zjavne poskytuje a early-abort (urceny pre server BEZ piconov)
+			# sa nema uplatnit — viz _maybe_trigger_abort nizsie.
+			cached_ok_before = skipped > 0
 			# FIX 0.71.1: early-abort stav
 			aborted_count = [0]            # koľko jobov sme preskočili po abort-e
 			abort_event = threading.Event()  # set() => server nemá picony, končíme
@@ -341,6 +345,14 @@ class TvhPiconMixin(object):
 				# Volá sa POD err_log_lock-om.
 				# Podmienka: žiadne úspešné stiahnutie + dosť 404 => server
 				# zjavne nemá imagecache picony, nemá zmysel skúšať zvyšok.
+				#
+				# FIX 1.0.1: podmienka sa pozerala len na uspechy v AKTUALNOM behu
+				# a ignorovala uz stiahnute subory. Ked mal server vacsinu piconov
+				# v cache a dostahovavalo sa len par poslednych rozbitych,
+				# early-abort naskocil zbytocne a oznacil aj nevyskusane kanaly
+				# ako 404. Ak uz nieco v cache mame, server picony evidentne MA.
+				if cached_ok_before:
+					return
 				if (not abort_event.is_set()
 						and ok_count[0] == 0
 						and err_404_count[0] >= _PICON_EARLY_ABORT_404):

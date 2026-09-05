@@ -125,6 +125,8 @@ class DvrMixin(object):
 			channels = self.tvh.get_channels()
 		except Exception:
 			# FIX 0.48h: namiesto tichého empty → retry
+			if self._add_connlimit_notice():
+				return
 			try:
 				self._invalidate_tvh_login_cache()
 			except Exception:
@@ -392,6 +394,8 @@ class DvrMixin(object):
 			entries = self._dvr_entries()
 		except Exception:
 			# FIX 0.50beta: tiež retry namiesto tichého empty
+			if self._add_connlimit_notice():
+				return
 			try:
 				self._invalidate_tvh_login_cache()
 			except Exception:
@@ -474,6 +478,8 @@ class DvrMixin(object):
 			by_top, by_subcat, _counts, series_by_canonical, series_subcat_titles \
 				= _get_classified_dvr(self._dvr_entries())
 		except Exception:
+			if self._add_connlimit_notice():
+				return
 			try:
 				self._invalidate_tvh_login_cache()
 			except Exception:

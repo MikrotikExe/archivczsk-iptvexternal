@@ -34,6 +34,50 @@ class TvhHtspApiMixin(object):
 		pwd = (self.cp.get_setting('password') or '')
 		return host, port, user, pwd
 
+	# ------------------------------------------------------------------
+	# FIX 1.0.1: stav "server odmieta spojenia pre limit"
+	# ------------------------------------------------------------------
+	# Tvheadend pri prekroceni Access entry -> "Limit connections" odmietne
+	# KAZDE dalsie spojenie uzivatela, aj cisto metadatove HTSP (overene
+	# v tcp_connection_launch: kontrola sa aplikuje na kazde nove spojenie,
+	# nielen na streamovacie). Typicky nastane, ked na pozadi bezi live
+	# kanal. Nie je to vypadok servera a nesmie sa tak vyhodnocovat.
+	_CONNLIMIT_COOLDOWN = 300   # 5 minut
+
+	def _note_connlimit(self, exc):
+		"""Zaznamena, ze server prave odmietol spojenie pre limit."""
+		import time as _t
+		now = _t.time()
+		prev = getattr(self, '_htsp_connlimit_ts', 0)
+		self._htsp_connlimit_ts = now
+		self._htsp_connlimit_msg = str(exc)
+		# Loguj raz za cooldown, nie pri kazdom pokuse — inak by watchdog
+		# kazdych 5 minut plnil log rovnakou hlaskou.
+		if not prev or (now - prev) > self._CONNLIMIT_COOLDOWN:
+			try:
+				self.cp.log_info('[Tvheadend] limit sucasnych spojeni na serveri '
+				                 '— server je v poriadku, len obsadeny; '
+				                 'metadata beru z cache')
+			except Exception:
+				pass
+
+	def _clear_connlimit(self):
+		"""Spojenie preslo — zrus priznak."""
+		if getattr(self, '_htsp_connlimit_ts', 0):
+			self._htsp_connlimit_ts = 0
+			self._htsp_connlimit_msg = ''
+			try:
+				self.cp.log_info('[Tvheadend] limit spojeni pominul, HTSP opat prechadza')
+			except Exception:
+				pass
+
+	def htsp_connlimit_active(self):
+		"""True ak server nedavno odmietol spojenie pre limit. Volajuci to ma
+		brat ako "server bezi, ale je obsadeny", nie ako vypadok."""
+		import time as _t
+		ts = getattr(self, '_htsp_connlimit_ts', 0)
+		return bool(ts) and (_t.time() - ts) < self._CONNLIMIT_COOLDOWN
+
 	def htsp_fetch_metadata(self, with_epg=True, force=False, ttl=None,
 	                        channels_only=False):
 		"""Načíta HTSP metadata s cache. Rozlišuje cache pre with_epg vs bez,
@@ -71,13 +115,32 @@ class TvhHtspApiMixin(object):
 			from . import htsp as _htsp
 			host, port, user, pwd = self._htsp_params()
 			client = _htsp.HTSPClient(host, port, user, pwd, cp=self.cp)
-			client.connect()
+			try:
+				client.connect()
+			except _htsp.HTSPConnectionLimit as e:
+				# FIX 1.0.1: server odmietol spojenie kvoli limitu subeznych spojeni
+				# (typicky bezi live stream toho isteho uzivatela). Server JE
+				# v poriadku, len obsadeny — nesmieme to hlasit ako vypadok.
+				# Vratime poslednu dobru cache BEZ ohladu na jej vek, aby Archiv,
+				# EPG aj zoznam kanalov ostali pouzitelne.
+				self._note_connlimit(e)
+				stale = getattr(self, cache_attr, None)
+				if stale is None and cache_attr == '_htsp_meta':
+					# non-EPG cache je prazdna, ale plna EPG cache obsahuje kanaly
+					# aj tagy — pre stream URL to uplne postaci
+					stale = getattr(self, '_htsp_meta_epg', None)
+				if stale is not None:
+					self._log('limit spojeni — pouzivam poslednu znamu cache '
+					          '(stara %d s)' % int(now - getattr(self, ts_attr, now)))
+					return stale
+				raise
 			try:
 				# epg_max_days=2: obmedz EPG na ~2 dni (rýchlejší fetch + menej RAM)
 				data = client.fetch_metadata(with_epg=with_epg, epg_max_days=2,
 				                             channels_only=channels_only)
 			finally:
 				client.close()
+			self._clear_connlimit()
 			tagmap = {}
 			for t in data.get('tags', []):
 				tid = t.get('tagId')

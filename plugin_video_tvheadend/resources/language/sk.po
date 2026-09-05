@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plugin_video_tvheadend\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 16:18+0000\n"
-"PO-Revision-Date: 2026-09-03 16:18+0000\n"
+"POT-Creation-Date: 2026-09-04 05:18+0000\n"
+"PO-Revision-Date: 2026-09-04 05:18+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: sk\n"
@@ -436,31 +436,31 @@ msgstr "Posledné obnovenie TVH bouquetu"
 msgid "Picons with broken icons (404 cache)"
 msgstr "Picony s rozbitými ikonami (404 cache)"
 
-#: plugin_video_tvheadend/dvr.py:680 plugin_video_tvheadend/dvr.py:434
+#: plugin_video_tvheadend/dvr.py:686 plugin_video_tvheadend/dvr.py:438
 msgid "Recording"
 msgstr "Nahrávanie"
 
-#: plugin_video_tvheadend/dvr.py:733
+#: plugin_video_tvheadend/dvr.py:739
 msgid "DVR"
 msgstr "DVR"
 
-#: plugin_video_tvheadend/dvr.py:213
+#: plugin_video_tvheadend/dvr.py:215
 msgid "History is empty — start watching something."
 msgstr "História je prázdna — pozri si najprv niečo."
 
-#: plugin_video_tvheadend/dvr.py:256
+#: plugin_video_tvheadend/dvr.py:258
 msgid "Watched entries no longer exist in DVR archive."
 msgstr "Položky histórie už neexistujú v DVR archíve."
 
-#: plugin_video_tvheadend/dvr.py:303
+#: plugin_video_tvheadend/dvr.py:305
 msgid "Please type at least 2 characters."
 msgstr "Zadaj prosím aspoň 2 znaky."
 
-#: plugin_video_tvheadend/dvr.py:634
+#: plugin_video_tvheadend/dvr.py:640
 msgid "(no episodes found)"
 msgstr "(žiadne epizódy)"
 
-#: plugin_video_tvheadend/dvr.py:111 plugin_video_tvheadend/dvr.py:200 plugin_video_tvheadend/dvr.py:286 plugin_video_tvheadend/dvr.py:385 plugin_video_tvheadend/dvr.py:462 plugin_video_tvheadend/live.py:79
+#: plugin_video_tvheadend/dvr.py:111 plugin_video_tvheadend/dvr.py:202 plugin_video_tvheadend/dvr.py:288 plugin_video_tvheadend/dvr.py:387 plugin_video_tvheadend/dvr.py:466 plugin_video_tvheadend/live.py:79
 msgid "⟳ TVH unreachable — tap to retry"
 msgstr "⟳ TVH nedostupný — kliknutím skúsiť znova"
 
@@ -468,59 +468,59 @@ msgstr "⟳ TVH nedostupný — kliknutím skúsiť znova"
 msgid "✗ Tvheadend server not configured. Open Settings to fill in host, username, password."
 msgstr "✗ Tvheadend server nie je nakonfigurovaný. Otvor Nastavenia a vyplň server, meno a heslo."
 
-#: plugin_video_tvheadend/dvr.py:132 plugin_video_tvheadend/dvr.py:221 plugin_video_tvheadend/dvr.py:317 plugin_video_tvheadend/dvr.py:399 plugin_video_tvheadend/dvr.py:481
+#: plugin_video_tvheadend/dvr.py:134 plugin_video_tvheadend/dvr.py:223 plugin_video_tvheadend/dvr.py:319 plugin_video_tvheadend/dvr.py:403 plugin_video_tvheadend/dvr.py:487
 msgid "⟳ Failed to load archive — tap to retry"
 msgstr "⟳ Zlyhalo načítanie archívu — kliknutím skúsiť znova"
 
-#: plugin_video_tvheadend/dvr.py:296 plugin_video_tvheadend/dvr.py:468
+#: plugin_video_tvheadend/dvr.py:298 plugin_video_tvheadend/dvr.py:472
 msgid "✗ Tvheadend server not configured."
 msgstr "✗ Tvheadend server nie je nakonfigurovaný."
 
-#: plugin_video_tvheadend/dvr.py:343
+#: plugin_video_tvheadend/dvr.py:345
 msgid "✗ Nothing found for: %s"
 msgstr "✗ Nič sa nenašlo pre: %s"
 
-#: plugin_video_tvheadend/dvr.py:363
+#: plugin_video_tvheadend/dvr.py:365
 msgid "Found %d results — showing first %d (most recent). Refine the search for fewer results."
 msgstr "Nájdených %d výsledkov — zobrazujem prvých %d (najnovšie). Spresni hľadanie pre menej výsledkov."
 
-#: plugin_video_tvheadend/dvr.py:369
+#: plugin_video_tvheadend/dvr.py:371
 msgid "Found %d result(s) for: %s"
 msgstr "Nájdené %d výsledok(y) pre: %s"
 
-#: plugin_video_tvheadend/dvr.py:539 plugin_video_tvheadend/dvr.py:564 plugin_video_tvheadend/dvr.py:586 plugin_video_tvheadend/dvr.py:627
+#: plugin_video_tvheadend/dvr.py:545 plugin_video_tvheadend/dvr.py:570 plugin_video_tvheadend/dvr.py:592 plugin_video_tvheadend/dvr.py:633
 msgid "⟳ Failed to load — tap to retry"
 msgstr "⟳ Načítanie zlyhalo — ťuknite pre opakovanie"
 
-#: plugin_video_tvheadend/dvr.py:176
+#: plugin_video_tvheadend/dvr.py:178
 msgid "days"
 msgstr "dní"
 
-#: plugin_video_tvheadend/dvr.py:214 plugin_video_tvheadend/dvr.py:257 plugin_video_tvheadend/provider.py:260 plugin_video_tvheadend/provider.py:262
+#: plugin_video_tvheadend/dvr.py:216 plugin_video_tvheadend/dvr.py:259 plugin_video_tvheadend/provider.py:260 plugin_video_tvheadend/provider.py:262
 msgid "Recently watched"
 msgstr "Posledné sledované"
 
-#: plugin_video_tvheadend/dvr.py:304 plugin_video_tvheadend/dvr.py:345 plugin_video_tvheadend/dvr.py:365 plugin_video_tvheadend/dvr.py:370
+#: plugin_video_tvheadend/dvr.py:306 plugin_video_tvheadend/dvr.py:347 plugin_video_tvheadend/dvr.py:367 plugin_video_tvheadend/dvr.py:372
 msgid "Search"
 msgstr "Vyhľadávanie"
 
-#: plugin_video_tvheadend/dvr.py:346
+#: plugin_video_tvheadend/dvr.py:348
 msgid "Try a shorter or simpler query. Diacritics are ignored."
 msgstr "Skús kratšie alebo jednoduchšie zadanie. Diakritika sa ignoruje."
 
-#: plugin_video_tvheadend/dvr.py:113 plugin_video_tvheadend/dvr.py:202 plugin_video_tvheadend/dvr.py:288 plugin_video_tvheadend/dvr.py:387 plugin_video_tvheadend/dvr.py:464 plugin_video_tvheadend/live.py:30 plugin_video_tvheadend/live.py:81
+#: plugin_video_tvheadend/dvr.py:113 plugin_video_tvheadend/dvr.py:204 plugin_video_tvheadend/dvr.py:290 plugin_video_tvheadend/dvr.py:389 plugin_video_tvheadend/dvr.py:468 plugin_video_tvheadend/live.py:30 plugin_video_tvheadend/live.py:81
 msgid "Retry TVH"
 msgstr "Skúsiť znova"
 
-#: plugin_video_tvheadend/dvr.py:120 plugin_video_tvheadend/dvr.py:298 plugin_video_tvheadend/dvr.py:470 plugin_video_tvheadend/live.py:44
+#: plugin_video_tvheadend/dvr.py:120 plugin_video_tvheadend/dvr.py:300 plugin_video_tvheadend/dvr.py:474 plugin_video_tvheadend/live.py:44
 msgid "TVH not configured"
 msgstr "TVH nie je nastavený"
 
-#: plugin_video_tvheadend/dvr.py:134 plugin_video_tvheadend/dvr.py:223 plugin_video_tvheadend/dvr.py:319 plugin_video_tvheadend/dvr.py:401 plugin_video_tvheadend/dvr.py:483 plugin_video_tvheadend/dvr.py:541 plugin_video_tvheadend/dvr.py:566 plugin_video_tvheadend/dvr.py:588 plugin_video_tvheadend/dvr.py:629 plugin_video_tvheadend/live.py:60 plugin_video_tvheadend/live.py:96 plugin_video_tvheadend/provider.py:175
+#: plugin_video_tvheadend/dvr.py:136 plugin_video_tvheadend/dvr.py:225 plugin_video_tvheadend/dvr.py:321 plugin_video_tvheadend/dvr.py:405 plugin_video_tvheadend/dvr.py:489 plugin_video_tvheadend/dvr.py:547 plugin_video_tvheadend/dvr.py:572 plugin_video_tvheadend/dvr.py:594 plugin_video_tvheadend/dvr.py:635 plugin_video_tvheadend/live.py:60 plugin_video_tvheadend/live.py:98 plugin_video_tvheadend/provider.py:175
 msgid "Retry"
 msgstr "Skúsiť znova"
 
-#: plugin_video_tvheadend/dvr.py:207 plugin_video_tvheadend/dvr.py:293 plugin_video_tvheadend/live.py:36 plugin_video_tvheadend/provider.py:184
+#: plugin_video_tvheadend/dvr.py:209 plugin_video_tvheadend/dvr.py:295 plugin_video_tvheadend/live.py:36 plugin_video_tvheadend/provider.py:184
 msgid "Open settings"
 msgstr "Otvoriť nastavenia"
 
@@ -528,7 +528,7 @@ msgstr "Otvoriť nastavenia"
 msgid "All"
 msgstr "Všetky"
 
-#: plugin_video_tvheadend/live.py:165
+#: plugin_video_tvheadend/live.py:167
 msgid "Live stream"
 msgstr "Živý stream"
 
@@ -540,7 +540,7 @@ msgstr "⟳ TVH dočasne nedostupný — kliknutím skúsiť znova"
 msgid "⟳ Failed to load categories — tap to retry"
 msgstr "⟳ Načítanie kategórií zlyhalo — ťuknite pre opakovanie"
 
-#: plugin_video_tvheadend/live.py:94
+#: plugin_video_tvheadend/live.py:96
 msgid "⟳ Failed to load channels — tap to retry"
 msgstr "⟳ Načítanie kanálov zlyhalo — ťuknite pre opakovanie"
 
@@ -636,47 +636,51 @@ msgstr "✓ Refresh bouquetu + sťahovanie TVH piconov spustené na pozadí"
 msgid "✓ TVH picon /tmp cache update started (framework download skipped: %s)"
 msgstr "✓ Aktualizácia /tmp cache piconov spustená (sťahovanie cez framework preskočené: %s)"
 
-#: plugin_video_tvheadend/tvh_connection.py:610
+#: plugin_video_tvheadend/tvh_connection.py:514
+msgid "Tvheadend refused the connection — user connection limit reached (a stream is probably running). Showing last known data."
+msgstr "Tvheadend odmietol spojenie — dosiahnutý limit spojení používateľa (pravdepodobne beží stream). Zobrazujem posledné známe údaje."
+
+#: plugin_video_tvheadend/tvh_connection.py:639
 msgid "⚠ Tvheadend refused the connection — user connection limit reached (a stream is probably running). Credentials are fine."
 msgstr "⚠ Tvheadend odmietol spojenie — dosiahnutý limit spojení používateľa (pravdepodobne beží stream). Prihlasovacie údaje sú v poriadku."
 
-#: plugin_video_tvheadend/tvh_connection.py:617
+#: plugin_video_tvheadend/tvh_connection.py:646
 msgid "⚠ Server name not found — check 'host' field in Settings"
 msgstr "⚠ Meno servera nenájdené — skontroluj pole 'host' v Nastaveniach"
 
-#: plugin_video_tvheadend/tvh_connection.py:619
+#: plugin_video_tvheadend/tvh_connection.py:648
 msgid "⚠ Connection refused — wrong port, or TVH server not running"
 msgstr "⚠ Pripojenie odmietnuté — zlý port alebo TVH server nebeží"
 
-#: plugin_video_tvheadend/tvh_connection.py:621
+#: plugin_video_tvheadend/tvh_connection.py:650
 msgid "⚠ Connection timeout — check IP/host, network and firewall"
 msgstr "⚠ Časový limit vypršal — skontroluj IP/host, sieť a firewall"
 
-#: plugin_video_tvheadend/tvh_connection.py:623
+#: plugin_video_tvheadend/tvh_connection.py:652
 msgid "⚠ Authentication failed — check username and password"
 msgstr "⚠ Prihlásenie zlyhalo — skontroluj meno a heslo"
 
-#: plugin_video_tvheadend/tvh_connection.py:625
+#: plugin_video_tvheadend/tvh_connection.py:654
 msgid "⚠ Forbidden — TVH user lacks API permissions"
 msgstr "⚠ Zakázané — TVH užívateľ nemá API oprávnenia"
 
-#: plugin_video_tvheadend/tvh_connection.py:627
+#: plugin_video_tvheadend/tvh_connection.py:656
 msgid "⚠ API endpoint not found — wrong TVH version or path?"
 msgstr "⚠ API endpoint nenájdený — zlá verzia TVH alebo cesta?"
 
-#: plugin_video_tvheadend/tvh_connection.py:629
+#: plugin_video_tvheadend/tvh_connection.py:658
 msgid "⚠ No route to host — check network connection"
 msgstr "⚠ Žiadna trasa k serveru — skontroluj sieťové pripojenie"
 
-#: plugin_video_tvheadend/tvh_connection.py:631
+#: plugin_video_tvheadend/tvh_connection.py:660
 msgid "⚠ SSL/certificate error — try disabling HTTPS or fix cert"
 msgstr "⚠ SSL/certifikát chyba — vypni HTTPS alebo oprav certifikát"
 
-#: plugin_video_tvheadend/tvh_connection.py:649
+#: plugin_video_tvheadend/tvh_connection.py:678
 msgid "Last error"
 msgstr "Posledná chyba"
 
-#: plugin_video_tvheadend/tvh_connection.py:649
+#: plugin_video_tvheadend/tvh_connection.py:678
 msgid "Detail"
 msgstr "Detail"
 
@@ -684,15 +688,19 @@ msgstr "Detail"
 msgid "To display content, you must enter TVH server (host, username, password) in the addon settings"
 msgstr "Pre zobrazenie obsahu je potrebné zadať TVH server (host, prihlasovacie meno, heslo) v nastaveniach doplnku"
 
-#: plugin_video_tvheadend/tvheadend.py:266
+#: plugin_video_tvheadend/tvh_connection.py:518
+msgid "Server busy"
+msgstr "Server je obsadený"
+
+#: plugin_video_tvheadend/tvheadend.py:271
 msgid "Missing Tvheadend server address in settings."
 msgstr "V nastaveniach chýba adresa Tvheadend servera."
 
-#: plugin_video_tvheadend/tvheadend.py:405 plugin_video_tvheadend/tvheadend.py:394
+#: plugin_video_tvheadend/tvheadend.py:410 plugin_video_tvheadend/tvheadend.py:399
 msgid "Tvheadend API request failed."
 msgstr "Požiadavka na Tvheadend API zlyhala."
 
-#: plugin_video_tvheadend/tvheadend.py:387
+#: plugin_video_tvheadend/tvheadend.py:392
 msgid "Tvheadend returned invalid JSON."
 msgstr "Tvheadend vrátil neplatný JSON."
 
@@ -861,20 +869,12 @@ msgid "Player used for userbouquet"
 msgstr "Prehrávač pre userbouquet"
 
 #. resources/settings.xml
-msgid "Default"
-msgstr "Predvolené"
-
-#. resources/settings.xml
 msgid "gstplayer"
 msgstr "gstplayer"
 
 #. resources/settings.xml
 msgid "exteplayer3"
 msgstr "exteplayer3"
-
-#. resources/settings.xml
-msgid "DVB (OE>=2.5)"
-msgstr "DVB (OE>=2.5)"
 
 #. resources/settings.xml
 msgid "Archive: max items from DVR"

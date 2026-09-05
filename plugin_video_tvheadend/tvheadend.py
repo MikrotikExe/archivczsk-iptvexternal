@@ -228,6 +228,11 @@ class Tvheadend(TvhHtspApiMixin, TvhStreamUrlMixin, TvhDataApiMixin, TvhPiconMix
 		self._htsp_meta_ts = 0
 		self._htsp_meta_epg = None
 		self._htsp_meta_epg_ts = 0
+		# FIX 1.0.1: stav odmietnutia pre limit spojeni + sonda kontroly loginu
+		self._htsp_connlimit_ts = 0
+		self._htsp_connlimit_msg = ''
+		self._login_probe_http_ok = None
+		self._login_probe_ts = 0
 		# lock: aby nebežali dva paralelné HTSP fetche naraz (dva EPG buffery
 		# v RAM servera = riziko OOM). Druhý počká a vezme čerstvú cache.
 		import threading as _th
@@ -465,16 +470,57 @@ class Tvheadend(TvhHtspApiMixin, TvhStreamUrlMixin, TvhDataApiMixin, TvhPiconMix
 			except Exception:
 				pass
 		if self.is_htsp_mode():
-			# HTSP mód: over spojenie HTSP handshake+auth (nie HTTP serverinfo)
-			from . import htsp as _htsp
-			host, port, user, pwd = self._htsp_params()
-			client = _htsp.HTSPClient(host, port, user, pwd, cp=self.cp,
-			                          timeout=self._CHECK_LOGIN_TIMEOUT)
-			client.connect()   # vyhodí výnimku ak auth/spojenie zlyhá
-			client.close()
-			return True
+			return self._check_login_htsp_mode()
 		self.api_get('api/serverinfo', params={},
 		             timeout_override=self._CHECK_LOGIN_TIMEOUT)
+		return True
+
+	# FIX 1.0.1: v HTSP režime sa kontrola dostupnosti robila plnym HTSP
+	# handshakom. Watchdog ju vola kazdych 5 minut, co je 288 zbytocnych
+	# TCP+auth spojeni denne (namerane v logu: 686 spojeni za dva dni,
+	# presne 12 za hodinu). Horsie — HTTP API endpointy `api/*` v Tvheadende
+	# NEPRECHADZAJU cez limiter spojeni (tcp_connection_launch vola len
+	# stream/dvrfile/HTSP/SAT>IP cesta), takze HTTP kontrola prejde aj vtedy,
+	# ked HTSP odmieta. Preto: skus najprv HTTP, HTSP az ako zaloha.
+	# Vysledok sondy si pamatame, aby sme pri servere bez HTTP pristupu
+	# nerobili zbytocnu dvojicu pokusov pri kazdej kontrole.
+	_HTTP_PROBE_RETRY_SEC = 3600
+
+	def _check_login_htsp_mode(self):
+		import time as _t
+		now = _t.time()
+		http_ok = getattr(self, '_login_probe_http_ok', None)
+		probe_ts = getattr(self, '_login_probe_ts', 0)
+		if http_ok is False and (now - probe_ts) > self._HTTP_PROBE_RETRY_SEC:
+			http_ok = None   # po hodine skus HTTP znova
+		if http_ok is not False:
+			try:
+				self.api_get('api/serverinfo', params={},
+				             timeout_override=self._CHECK_LOGIN_TIMEOUT)
+				if http_ok is not True:
+					self._log('kontrola spojenia ide cez HTTP api/serverinfo '
+					          '(nezatazuje limit spojeni)')
+				self._login_probe_http_ok = True
+				self._login_probe_ts = now
+				return True
+			except Exception as e:
+				self._login_probe_http_ok = False
+				self._login_probe_ts = now
+				self._log('HTTP kontrola nedostupna (%s) — prepinam na HTSP '
+				          'handshake' % e)
+		# Zaloha: plny HTSP handshake
+		from . import htsp as _htsp
+		host, port, user, pwd = self._htsp_params()
+		client = _htsp.HTSPClient(host, port, user, pwd, cp=self.cp,
+		                          timeout=self._CHECK_LOGIN_TIMEOUT)
+		try:
+			client.connect()   # vyhodí výnimku ak auth/spojenie zlyhá
+		except _htsp.HTSPConnectionLimit as e:
+			# Server bezi, len je obsadeny — to nie je zlyhanie prihlasenia.
+			self._note_connlimit(e)
+			return True
+		client.close()
+		self._clear_connlimit()
 		return True
 
 	# ------------------------------------------------------------------
