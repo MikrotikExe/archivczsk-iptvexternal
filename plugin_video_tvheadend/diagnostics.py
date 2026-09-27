@@ -215,6 +215,9 @@ class DiagnosticsMixin(object):
 			# FIX 0.48j: stampy sú teraz v persistent data dir-u, nie v /tmp
 			(data_path('tvh_bouquet_refresh.stamp'),
 				self._("TVH refresh stamp")),
+			# FIX 1.0.2: stabilne SID kanalov + index zdrojov piconov
+			(data_path('bouquet_sids.json'), self._("Channel SID map")),
+			(data_path('picon_sources.json'), self._("Picon source index")),
 			# Plugin data adresár — ukáže prehľad
 			(get_data_dir(), self._("Plugin data dir")),
 			# ArchivCZSK common log

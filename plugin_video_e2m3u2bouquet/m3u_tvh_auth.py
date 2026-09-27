@@ -31,6 +31,11 @@ except ImportError:
 	from urllib2 import Request, urlopen
 	from urlparse import urlparse, parse_qs
 
+try:
+	from .m3u_provider import mask_url
+except (ValueError, ImportError):
+	from m3u_provider import mask_url
+
 
 _TVH_PATH_RE = re.compile(r'/(?:playlist|xmltv|stream|api)(?:/|$|\?)',
                           re.IGNORECASE)
@@ -89,6 +94,18 @@ class TvhAuthTokenClient(object):
 
 	def base_url(self):
 		return self._base
+
+	def _url_with_creds(self, url):
+		"""FIX 1.0.0: doplní `auth=<token>` do URL (rovnaké rozhranie ako
+		Tvheadend._url_with_creds v plugin.video.tvheadend, ktoré vkladá
+		user:pass@). Používa derive_tvh_xmltv_url() — bez tohto vracala
+		neautentifikovanú /xmltv/channels URL a TVH odpovedal 401/403."""
+		if not url or not self._token:
+			return url
+		if 'auth=' in url or 'ticket=' in url:
+			return url
+		sep = '&' if '?' in url else '?'
+		return url + sep + 'auth=' + self._token
 
 	def _build_url(self, path, params=None):
 		path = path.lstrip('/')
@@ -253,7 +270,7 @@ def fetch_tvh_tags_via_url(m3u_url, log=None, timeout=20):
 	if token:
 		tags_meta_url += '?auth=%s' % token
 
-	log('[tags-url] fetching tags meta from: %s' % tags_meta_url)
+	log('[tags-url] fetching tags meta from: %s' % mask_url(tags_meta_url))
 	try:
 		meta = _http_get_text(tags_meta_url, timeout=timeout)
 	except Exception as e:

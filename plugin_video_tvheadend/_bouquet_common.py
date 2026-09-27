@@ -43,6 +43,14 @@ class BouquetCommonMixin(object):
 		# (bool/int/str podľa addon.xml settings.xml type=). Wrappujeme len
 		# kvôli legacy bool/int coerce-ovaniu nad str výsledkom z framework-u
 		# pre starý formát settingov.
+		# tools.archivczsk 3.15+ (ArchivCZSK 3.7.1): BouquetGenerator sa pyta
+		# na 'enable_tsconvert' (prevod streamu na TS cez /playlivets/). TVH
+		# posiela hotovy MPEG-TS, prevod nema zmysel a nastavenie doplnok
+		# nema — vratime False priamo, inak by framework pri kazdom
+		# generovani logoval "Cannot retrieve setting 'enable_tsconvert'".
+		if name == 'enable_tsconvert':
+			return False
+
 		try:
 			val = self.cp.get_setting(name)
 		except Exception:

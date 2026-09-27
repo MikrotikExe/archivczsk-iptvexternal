@@ -323,6 +323,12 @@ class ActionsMixin(object):
 			             cmd=self.settings_menu)
 			return
 		try:
+			# FIX 1.0.2: cerstvy zoznam kanalov (nove kanaly v TVH), inak by
+			# sa bouquet aj picony generovali z cache (HTSP meta az 10 min)
+			try:
+				self.tvh.invalidate_channels_cache()
+			except Exception:
+				pass
 			# (1) /tmp/ cache update pre menu rendering
 			self.tvh.init_picons_async()
 
@@ -439,93 +445,65 @@ class ActionsMixin(object):
 
 
 	def action_tvh_picons_full_refresh(self):
-		"""FIX 0.59.2 (audit, Juraj): Plný refresh piconov — zmaže IBA picony
-		patriace TVH kanálom (podľa service refs z TVH userbouquetu) a stiahne
-		ich nanovo.
+		"""Plný refresh piconov: zmaže CELÝ balík TVH piconov a stiahne ho nanovo.
 
-		Rozdiel oproti "Stiahnuť TVH picony": tá akcia skip-uje existujúce
-		súbory, takže keď sa picon na serveri zmení (nové logo kanálu),
-		nestiahne novú verziu. Tento full refresh najprv zmaže staré súbory,
-		čím donúti stiahnuť aktuálne verzie zo servera.
+		FIX 0.59.2 (audit, Juraj): pôvodná verzia mazala len picony, ktorých
+		service ref bol v AKTUÁLNOM userbouquete.
 
-		BEZPEČNOSŤ: maže iba picony ktorých service ref je v TVH userbouquete
-		(userbouquet.tvheadend_tv.tv + .radio). Picony iných pluginov (M3U,
-		satelitné, atď.) v /usr/share/enigma2/picon/ ostávajú nedotknuté.
+		FIX 1.0.2 (Juraj): to nestačilo. Keď sa v Tvheadende pridal kanál a
+		ostatné sa posunuli, staré picony patrili k refom, ktoré už v bouquete
+		neboli (alebo naopak k refom, ktoré teraz patria inému kanálu), a
+		"obnova" ich nechala na disku. Teraz:
+		  1. invaliduje channel cache (HTTP aj HTSP metadáta) — čerstvý zoznam
+		  2. zmaže /tmp imagecache + 404 cache
+		  3. označí _picon_wipe_pending → refresh_bouquet po vygenerovaní
+		     bouquetu zmaže VŠETKY picony tohto doplnku podľa TID/ONID/NS
+		     v mene súboru (_wipe_tvh_picons) a _remap_picons_to_bouquet
+		     stiahne celý balík nanovo pod menami z čerstvého bouquetu.
+		Picony iných doplnkov / satelitné ostávajú nedotknuté. Kombinácia so
+		stabilnými SID (_bouquet_sids.py) znamená, že po tomto kroku už
+		picony nemajú dôvod sa posunúť.
 		"""
 		if not self._check_tvh_silent():
 			self.add_dir(self._("✗ TVH login failed - check settings"),
 			             cmd=self.settings_menu)
 			return
+		if self._bouquet_gen is None and TvheadendBouquetXmlEpgGenerator is not None:
+			try:
+				self._bouquet_gen = TvheadendBouquetXmlEpgGenerator(self)
+			except Exception:
+				self._bouquet_gen = None
+		if self._bouquet_gen is None:
+			self.add_dir(self._("✗ Bouquet generator not initialised"),
+			             cmd=self.settings_menu)
+			return
+		if not self._bouquet_gen.get_setting('enable_userbouquet'):
+			self.add_dir(self._("✗ Userbouquet export is disabled — enable it first"),
+			             cmd=self.settings_menu)
+			self.add_dir(self._("« Back"), cmd=self.settings_menu)
+			return
+		if not self._bouquet_gen.get_setting('enable_picons'):
+			self.add_dir(self._("✗ Picon download is disabled — enable 'Automatically "
+			                    "download picons' in Userbouquet settings"),
+			             cmd=self.settings_menu)
+			self.add_dir(self._("« Back"), cmd=self.settings_menu)
+			return
 		try:
 			import threading as _threading
 
 			def _bg_full_refresh():
-				deleted = 0
 				try:
-					# 1) Pozbieraj service refs z TVH userbouquetov
-					srefs = set()
-					base = "/etc/enigma2"
-					for fn in ("userbouquet.tvheadend_tv.tv",
-					           "userbouquet.tvheadend_radio.radio",
-					           "userbouquet.tvheadend_radio.tv"):
-						path = os.path.join(base, fn)
-						if not os.path.isfile(path):
-							continue
-						try:
-							with open(path, 'r') as f:
-								for line in f:
-									# #SERVICE 1:0:1:...:0:0:0:URL:NAME
-									if not line.startswith('#SERVICE'):
-										continue
-									parts = line.split(':')
-									if len(parts) < 11:
-										continue
-									# service ref = prvých 10 polí, picon meno
-									# je tých 10 polí spojených '_' (bez trailing)
-									ref10 = parts[1:11]
-									# Enigma2 picon meno: polia 1-10 spojené '_',
-									# uppercase hex, s trailing '_0_0_0' formátom.
-									# FIX 0.59.2: pridaj DVE varianty do mazacieho setu:
-									#  a) normalizovaný type=1 (nové správne meno)
-									#  b) pôvodný player_id type (staré zlé meno
-									#     5002_/4097_/... z verzií pred normalizáciou)
-									# Tým full refresh zmaže aj legacy nesprávne
-									# pomenované picony.
-									ref10 = [p.strip() for p in ref10]
-									orig = '_'.join(ref10)
-									srefs.add(orig.upper())
-									if ref10 and ref10[0] != '1':
-										norm = ref10[:]
-										norm[0] = '1'
-										srefs.add('_'.join(norm).upper())
-						except Exception as _e:
-							self.log_error('[Tvheadend.picons] full_refresh: '
-							               'cannot read %s: %s' % (fn, _e))
+					# 1) cerstvy zoznam kanalov (aj HTSP metadata)
+					try:
+						self.tvh.invalidate_channels_cache()
+					except Exception:
+						pass
+					try:
+						_invalidate_classify_cache()
+					except Exception:
+						pass
 
-					# 2) Zmaž zodpovedajúce picon súbory z Enigma2 picon dir
-					picon_dirs = ['/usr/share/enigma2/picon',
-					              '/media/hdd/picon',
-					              '/media/usb/picon']
-					for pdir in picon_dirs:
-						if not os.path.isdir(pdir):
-							continue
-						try:
-							for pf in os.listdir(pdir):
-								if not pf.lower().endswith('.png'):
-									continue
-								# picon meno bez .png, uppercase
-								base_name = pf[:-4].upper()
-								if base_name in srefs:
-									try:
-										os.remove(os.path.join(pdir, pf))
-										deleted += 1
-									except Exception:
-										pass
-						except Exception as _e:
-							self.log_error('[Tvheadend.picons] full_refresh: '
-							               'cannot scan %s: %s' % (pdir, _e))
-
-					# 3) Zmaž internú /tmp cache (imagecache_*)
+					# 2) interna /tmp cache + 404 cache
 					try:
 						cache_dir = self.tvh._img_cache_dir
 						if os.path.isdir(cache_dir):
@@ -537,44 +515,28 @@ class ActionsMixin(object):
 										pass
 					except Exception:
 						pass
-
-					# 4) Vyčisti 404 cache (nech sa skúsia stiahnuť aj predtým
-					#    zlyhané)
-					# FIX 1.0.0 (audit): predtým `from .tvheadend import
-					# _picon_404_clear` — po refaktore 0.90.0 je táto funkcia
-					# v _picons.py, takže import vždy padol do except a 404
-					# cache sa pri plnom refreshi NEVYČISTILA (kanály ktoré
-					# raz dali 404 sa hodinu nesťahovali ani po force refreshi).
 					try:
 						from ._picons import _picon_404_clear
 						_picon_404_clear()
 					except Exception:
 						pass
 
-					self.log_info('[Tvheadend.picons] full_refresh: deleted %d '
-					              'TVH picon files, cleared caches — re-downloading'
-					              % deleted)
-
-					# 5) Force bouquet refresh → framework download_picons
-					#    stiahne všetko nanovo (skip-exists teraz nič nepreskočí
-					#    lebo súbory sú zmazané)
+					# 3) plny wipe + regenerovanie + stiahnutie
+					self._bouquet_gen._picon_wipe_pending = True
 					try:
 						self.save_cached_data('bouquet', {})
 					except Exception:
 						pass
-					if self._bouquet_gen is None and TvheadendBouquetXmlEpgGenerator is not None:
-						try:
-							self._bouquet_gen = TvheadendBouquetXmlEpgGenerator(self)
-						except Exception:
-							self._bouquet_gen = None
-					if self._bouquet_gen is not None:
-						self._bouquet_gen.refresh_bouquet()
-					# Plus /tmp cache pre menu rendering
+					try:
+						self._bouquet_gen.load_channel_list()
+					except Exception:
+						pass
+					self._bouquet_gen.refresh_bouquet()
+
 					try:
 						self.tvh.init_picons_async()
 					except Exception:
 						pass
-
 					self.log_info('[Tvheadend.picons] full_refresh: done')
 				except Exception as _e:
 					try:

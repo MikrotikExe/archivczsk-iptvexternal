@@ -1,4 +1,73 @@
 Tvheadend plugin pre archivCZSK
+Verzia 1.0.2 (27.09.2026)
+================================================================
+
+Oprava piconov, ktore sa po pridani kanala v Tvheadende "posunuli" a
+obnova ich nevedela prepisat + audit nastaveni.
+
+  - HLAVNE: stabilne service ID (SID) kanalov v userbouquete. Doteraz bol
+    SID kanala jeho CISLO v Tvheadende (pri kanaloch bez cisla poradove
+    cislo). Enigma2 hlada picon podla service ref (1_0_1_<SID>_...), takze
+    ked sa pridal kanal doprostred zoznamu a ostatne sa precislovali,
+    kazdy kanal za nim dostal SID svojho predchodcu — a s nim aj jeho
+    picon, lebo subor s tym menom uz na disku bol a stahovanie existujuce
+    subory preskakovalo. Teraz sa SID prideli kanalu raz (podla jeho
+    identity v Tvheadende, rovnakej v HTTP aj HTSP rezime) a pamata sa
+    v bouquet_sids.json v data adresari doplnku. Existujuce instalacie
+    prevezmu svoje doterajsie SID (oblubene, timery a blacklist ostavaju
+    platne); nove kanaly dostavaju SID mimo pouzitych. Poradie v bouquete
+    dalej urcuje cislo kanala.
+
+  - "Force re-download all TVH picons" maze CELY balik piconov doplnku
+    (podla TID/ONID/NS v mene suboru), nie len picony z aktualneho
+    bouquetu — prave tie "posunute" v nom uz neboli. Picony inych doplnkov
+    a satelitne ostavaju. Po aktualizacii na 1.0.2 sa tento plny reset
+    spravi raz automaticky pri najblizsom generovani bouquetu.
+
+  - Picony sa stahuju jedinou cestou (_remap_picons_to_bouquet). Framework
+    download bezal paralelne, stahoval tie iste subory druhykrat a
+    ignoroval, ci subor patri k spravnemu kanalu. Novy index zdrojov
+    (picon_sources.json): ked kanalu zmenite logo v Tvheadende, picon sa
+    stiahne znova aj ked subor existuje. Stahovanie bezi v 4 vlaknach a
+    pouziva tu istu autentifikaciu ako zvysok doplnku (http_auth_mode,
+    basic aj SHA-256 digest, hesla so specialnymi znakmi) — predtym
+    natvrdo MD5 digest s heslom vytiahnutym z URL. Refy prevzate z lamedb
+    (pri vypnutom XML EPG) sa nepremapuju, aby TVH logo neprepisalo
+    satelitny picon.
+
+  - Remap piconov respektuje nastavenie "Automatically download picons"
+    (predtym stahoval vzdy). Akcie v menu Nastavenia pri vypnutom exporte
+    bouquetu / piconov povedia preco nic nerobia.
+
+  - HTSP rezim: "Invalidate TVH channel cache" a plny refresh piconov
+    zneplatnia aj HTSP metadata (10 min cache). Predtym sa bouquet v HTSP
+    rezime generoval zo stareho zoznamu bez prave pridaneho kanala.
+
+  - "Download TVH picons now" najprv zneplatni cache kanalov, aby videl
+    nove kanaly.
+
+  - Nastavenia (audit):
+      * nove pole "Custom stream profile name" — vlastny profil zo servera,
+        ktory nie je v pevnom zozname (ma prednost).
+      * Timeout: zaporna alebo neplatna hodnota = 15 s (0 = bez timeoutu
+        ostava, potrebuju to velke EPG exporty).
+      * "Use HTTPS" sa vyhodnocuje bezpecne aj pri retazcovej hodnote
+        (bool("false") bolo True).
+      * "Show paths" ukazuje aj bouquet_sids.json a picon_sources.json.
+
+  - Kompatibilita s ArchivCZSK 3.7.1 / tools.archivczsk 3.16: novy
+    framework generator bouquetov cita nastavenie 'enable_tsconvert'
+    (prevod na TS cez /playlivets/). Doplnok ho nema — vracia False
+    (Tvheadend uz posiela MPEG-TS), takze sa v logu neobjavuje "Cannot
+    retrieve setting" pri kazdom generovani. Ine zmeny 3.7.1 (ffmpeg z
+    exteplayer3 balika, HLS parser, texty donate) sa doplnku netykaju.
+
+Overene simulaciou (harness/picons_stable.py, 31 kontrol): pridanie
+kanala doprostred + precislovanie nezmeni SID existujucich kanalov,
+3000 kanalov bez kolizie SID, wipe maze len subory doplnku, zmena loga
+= jeden novy download, HTSP invalidacia.
+
+Tvheadend plugin pre archivCZSK
 Verzia 1.0.1 (05.09.2026)
 ================================================================
 

@@ -9,32 +9,8 @@ msgstr ""
 msgid "Refresh M3U playlist + EPG now"
 msgstr "Aktualizovať M3U playlist + EPG"
 
-msgid "Refresh M3U now"
-msgstr "Aktualizovať M3U"
-
-msgid "Refresh M3U playlist (background)"
-msgstr "Aktualizovať M3U playlist (na pozadí)"
-
-msgid "Refresh M3U background"
-msgstr "M3U na pozadí"
-
-msgid "Download M3U picons now"
-msgstr "Stiahnuť M3U picony"
-
-msgid "M3U picons"
-msgstr "M3U picony"
-
 msgid "✗ Remove M3U bouquet"
 msgstr "✗ Odstrániť M3U bouquet"
-
-msgid "Remove M3U bouquet"
-msgstr "Odstrániť M3U bouquet"
-
-msgid "Diagnose M3U EPG matching"
-msgstr "Diagnostika M3U EPG"
-
-msgid "Diagnose M3U EPG"
-msgstr "Diagnostika M3U EPG"
 
 msgid "Settings"
 msgstr "Nastavenia"
@@ -42,41 +18,47 @@ msgstr "Nastavenia"
 msgid "M3U source is not configured. Open Settings to fill in M3U URL."
 msgstr "M3U zdroj nie je nakonfigurovaný. Otvor Nastavenia a vyplň M3U URL."
 
-msgid "M3U source is not configured."
-msgstr "M3U zdroj nie je nakonfigurovaný."
-
-msgid "✓ M3U refresh complete"
-msgstr "✓ Aktualizácia M3U dokončená"
-
-msgid "Channels: {}"
-msgstr "Kanály: {}"
-
-msgid "Bouquet: {}"
-msgstr "Bouquet: {}"
-
-msgid "EPG events: {}"
-msgstr "EPG udalostí: {}"
-
-msgid "M3U refresh failed: {}"
-msgstr "Aktualizácia M3U zlyhala: {}"
-
 msgid "✓ M3U refresh started in background"
 msgstr "✓ Aktualizácia M3U spustená na pozadí"
-
-msgid "✓ Downloaded {} M3U picons"
-msgstr "✓ Stiahnutých {} M3U piconov"
-
-msgid "Picon download failed: {}"
-msgstr "Sťahovanie piconov zlyhalo: {}"
 
 msgid "✓ Removed M3U bouquet files: {}"
 msgstr "✓ Odstránené M3U bouquet súbory: {}"
 
-msgid "No M3U bouquet files to remove"
-msgstr "Žiadne M3U bouquet súbory na odstránenie"
+msgid "Inject EPG only (no playlist refresh)"
+msgstr "Vložiť len EPG (bez aktualizácie playlistu)"
 
-msgid "Diagnostics failed: {}"
-msgstr "Diagnostika zlyhala: {}"
+msgid "✓ EPG injection started in background"
+msgstr "✓ Vkladanie EPG spustené na pozadí"
+
+msgid "✓ M3U cleanup done: {}"
+msgstr "✓ Čistenie M3U dokončené: {}"
+
+msgid "Cleanup returned no stats"
+msgstr "Čistenie nevrátilo žiadne štatistiky"
+
+msgid "Cleanup failed: {}"
+msgstr "Čistenie zlyhalo: {}"
+
+msgid "Force re-download all M3U picons (delete + fresh)"
+msgstr "Vynútiť opätovné stiahnutie všetkých M3U piconov (zmazať + nanovo)"
+
+msgid "✓ Picon reset + refresh started in background"
+msgstr "✓ Reset piconov + aktualizácia spustená na pozadí"
+
+msgid "Radio"
+msgstr "Rádiá"
+
+msgid "Picon directory"
+msgstr "Adresár piconov"
+
+msgid "Stable SID map"
+msgstr "Mapa stabilných SID"
+
+msgid "Picon source index"
+msgstr "Index zdrojov piconov"
+
+msgid "M3U cleanup queued — a refresh is running, it will finish first"
+msgstr "Čistenie M3U zaradené — práve beží aktualizácia, najprv dobehne"
 
 # === Settings.xml translations ===
 
@@ -191,9 +173,6 @@ msgstr "Posledné vloženie EPG"
 msgid "Bouquet file"
 msgstr "Bouquet súbor"
 
-msgid "M3U bouquet"
-msgstr "M3U bouquet"
-
 msgid "Last refresh stamp"
 msgstr "Posledná aktualizácia stamp"
 
@@ -203,14 +182,5 @@ msgstr "Posledné vloženie EPG stamp"
 msgid "⚠ Userbouquet export is disabled in settings"
 msgstr "⚠ Export do userbouquetu je vypnutý v nastaveniach"
 
-msgid "⚙ M3U URL not configured — open Settings (blue button)"
-msgstr "⚙ M3U URL nie je nakonfigurované — otvor Nastavenia (modré tlačidlo)"
-
-msgid "Configure M3U"
-msgstr "Nakonfigurovať M3U"
-
 msgid "To display content, you must enter M3U playlist URL in the addon settings"
 msgstr "Pre zobrazenie obsahu je potrebné zadať URL M3U playlistu v nastaveniach doplnku"
-
-msgid "To display content, you must enter TVH server (host, username, password) in the addon settings"
-msgstr "Pre zobrazenie obsahu je potrebné zadať TVH server (host, prihlasovacie meno, heslo) v nastaveniach doplnku"

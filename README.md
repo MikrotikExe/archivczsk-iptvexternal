@@ -120,11 +120,11 @@ GitHub and offers the update to end users.
 ├── LICENSE                                  ← GPL-2.0 license text
 ├── repo/                                    ← release ZIPs (one sub-dir per addon)
 │   ├── plugin.video.tvheadend/
-│   │   └── plugin.video.tvheadend-1.0.1.zip
+│   │   └── plugin.video.tvheadend-1.0.2.zip
 │   ├── plugin.video.oktagontv/
 │   │   └── plugin.video.oktagontv-1.0.0.zip
 │   └── plugin.video.e2m3u2bouquet/
-│       └── plugin.video.e2m3u2bouquet-0.2.1.zip
+│       └── plugin.video.e2m3u2bouquet-1.0.0.zip
 ├── plugin_video_oktagontv/                  ← source: OKTAGON.tv client
 ├── plugin_video_tvheadend/                  ← source: Tvheadend client
 └── plugin_video_e2m3u2bouquet/              ← source: M3U to Bouquet

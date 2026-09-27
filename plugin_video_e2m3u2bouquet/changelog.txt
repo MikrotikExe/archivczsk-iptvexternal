@@ -1,10 +1,125 @@
 E2m3u2bouquet plugin pre archivCZSK
-Verzia 0.2.1 (22.5.2026)
+Verzia 1.0.0 (27.09.2026) - PRVE STABILNE VYDANIE
 ================================================================
 
 Konvertor IPTV M3U playlistu do Enigma2 bouquetu s XMLTV EPG
 injekciou. Automaticky vygeneruje userbouquet z akéhokoľvek
 M3U zdroja.
+
+
+NOVINKY VO VERZII 1.0.0
+----------------------------------------------------------------
+
+Oprava piconov, ktoré sa po pridaní kanála do playlistu "posunuli",
+audit plánovača, mapping override, parsera a nastavení.
+
+  - HLAVNÉ: stabilné service ID (SID) kanálov v userbouquete. Doteraz
+    bol SID kanála jeho PORADOVÉ ČÍSLO v playliste (globálny index cez
+    všetky kategórie). Enigma2 hľadá picon podľa service ref
+    (1_0_1_<SID>_<TSID>_<ONID>_...), takže keď provider pridal kanál
+    doprostred playlistu, každý kanál za ním dostal SID svojho
+    predchodcu — a s ním aj jeho picon, lebo súbor s tým menom už na
+    disku bol a sťahovanie existujúce súbory preskakovalo. Zároveň sa
+    rozbili obľúbené, timery a EPG naviazané na starý ref. Teraz sa SID
+    pridelí kanálu raz podľa jeho identity a pamätá sa v m3u_sids.json
+    v data adresári doplnku. Identita = stream URL (bez pominuteľných
+    auth parametrov auth/token/ticket/… a bez user:heslo@), tvg-id je
+    len alias — keď provider kanálu zmení URL, SID sa nájde cez tvg-id;
+    tvg-id zdieľané viacerými streamami (HD/SD variant) sa ako alias
+    nepoužije. Existujúce inštalácie prevezmú svoje doterajšie SID
+    (obľúbené a timery ostávajú platné) s jedinou výnimkou: ten istý
+    stream uvedený v playliste dvakrát (napr. v dvoch kategóriách) mal
+    doteraz dva rôzne SID, odteraz má pri oboch výskytoch SID prvého
+    výskytu — jeho druhý výskyt teda raz zmení ref. Nové kanály
+    dostávajú SID mimo použitých. Poradie v bouquete ďalej určuje
+    playlist, TSID/ONID kategórie sa nemenia.
+
+  - Picony sa ukladajú pod PRESNÝM menom refu z bouquetu
+    (`<typ>_0_1_<SID>_<TSID>_<ONID>_0_0_0_0.png`, typ = zvolený
+    prehrávač). Overené proti Picon.py v OpenATV aj OpenPLi 9.2: obe
+    nájdu presné meno hneď; normalizované `1_0_1_...` by OpenATV pri
+    namespace 0 nikdy nehľadalo (najprv prepíše namespace na "0000" a až
+    potom skúša typ 1). Nový index zdrojov (m3u_picon_sources.json):
+    keď provider zmení tvg-logo, picon sa stiahne znova aj keď súbor už
+    existuje; zmena prehrávača = nové mená, staré zmaže wipe. Sťahovanie
+    beží v 4 vláknach.
+
+  - Nová akcia "Force re-download all M3U picons (delete + fresh)"
+    zmaže CELÝ balík piconov doplnku (podľa TSID/ONID kategórií —
+    aj kategórií, ktoré už v playliste nie sú) a stiahne ich nanovo.
+    Picony iných doplnkov a satelitné ostávajú. Po aktualizácii na
+    1.0.0 sa tento plný reset spraví raz automaticky pri najbližšom
+    generovaní bouquetu (len ak sa SID mapu podarilo uložiť).
+    "Remove M3U bouquet" a automatický cleanup po vypnutí exportu
+    teraz mažú aj picony doplnku.
+
+  - Mapping override: kanály z kategórie s enabled="false" sa už
+    nevracali späť na koniec bouquetu (druhý prechod ich bral ako
+    "osirelé") a nameOverride na názov existujúcej kategórie
+    zduplikoval jej kanály. Teraz jediný prechod cez kanály.
+
+  - Parser #EXTINF: čiarka vnútri hodnoty atribútu (napr.
+    group-title="Kids, Family") rozbila názov aj skupinu kanála —
+    atribúty sa parsujú najprv, názov je až text za nimi.
+
+  - EPG: keď viac kanálov zdieľa jedno tvg-id (HD/SD variant, kanál vo
+    viacerých kategóriách), EPG sa vloží do KAŽDÉHO z nich — predtým
+    len do prvého.
+
+  - Nastavenie "Separate radio channels into Radio bouquet" sa
+    v skutočnosti nikdy nedostalo do generátora (rádiá išli do Radio
+    bouquetu vždy) — opravené; navyše sa rešpektuje atribút
+    radio="true" v #EXTINF, nielen názov kategórie.
+
+  - "Auto-inject EPG into Enigma2" interval len podmieňoval injekciu
+    pri obnove bouquetu, nič neplánoval — medzi 24h obnovami EPG
+    vyprchalo. Teraz sa EPG injekcia naozaj periodicky plánuje
+    (cez službu na pozadí archivCZSK) a status "(every 4h)" je pravdivý.
+
+  - Plánovač: po vypnutí a opätovnom zapnutí exportu sa periodická
+    obnova znova naplánuje (cleanup ju rušil natrvalo). Nastavenia
+    m3u_url / m3u_epg_url / enable_userbouquet sú registrované len
+    v jednom notifieri — framework pri dvoch registráciách toho istého
+    nastavenia zavolal len jeden callback, preto sa vypnutie exportu
+    "nechytilo". Cleanup a EPG-only injekcia bežia pod tým istým zámkom
+    ako obnova; obnova si tesne pred zápisom znova overí, či export
+    nebol medzitým vypnutý.
+
+  - Štart boxu: obnova sa pri štarte spustí len ak je posledná staršia
+    ako interval obnovy (predtým pri každom štarte). Interval
+    "Disabled" (0) znamená bez periodickej obnovy, ale raz po každom
+    štarte boxu sa obnoví (ako doteraz). Ak sa playlist nepodarí
+    stiahnuť (sieť ešte nebeží), skúsi sa znova o 5 minút (max 3× za
+    sebou, počítadlo sa nuluje pri každej plánovanej/ručnej obnove)
+    namiesto čakania na ďalší interval.
+
+  - Obnova bouquetu a EPG-only injekcia si už nekonkurujú o zámok:
+    keď zámok drží injekcia, obnova počká (predtým sa preskočila a
+    bouquet sa neobnovil 24 h); EPG tick ustúpi, ak je obnova na rade.
+    "Remove M3U bouquet" / automatický cleanup po vypnutí exportu
+    neblokujú GUI — ak práve beží obnova, cleanup sa vykoná hneď po
+    nej. Ručný "Remove M3U bouquet" so zapnutým exportom nezastaví
+    periodickú obnovu (predtým zostala vypnutá do reštartu).
+
+  - TVH: nastavenie "Enrich M3U channels using TVH API" bolo vyhodnotené
+    naopak (framework vracia bool, kód čakal text). Odvodená XMLTV URL
+    z TVH teraz obsahuje auth token a odvodzuje sa len keď playlist
+    naozaj vyzerá ako Tvheadend (nie pre každú URL s /playlist/).
+
+  - Logy a status riadok nezobrazujú auth/ticket/token hodnoty ani
+    user:heslo v URL.
+
+  - Drobné: počet kanálov v stave "Bouquet file" bez kategoriálnych
+    markerov; názov Radio bouquetu prekladaný (SK/CZ); prázdny TV
+    bouquet (playlist len s rádiami) sa nezapisuje; prázdny playlist
+    (0 kanálov) nezmaže existujúci bouquet; Python 2 opravy (URL
+    s diakritikou, unicode v bool nastaveniach).
+
+  - Vyčistenie: nedefinované nastavenia m3u_bouquet_dir /
+    m3u_picon_dir / m3u_epgimport_dir nahradené konštantami; mŕtvy kód
+    (synchrónna obnova, nedosiahnuteľná vetva menu, nepoužité HTTP
+    auth parametre) odstránený; doplnené chýbajúce SK/CZ preklady,
+    odstránených 18 preklad. reťazcov z Tvheadend éry.
 
 
 NOVINKY VO VERZII 0.2.1

@@ -13,6 +13,9 @@
 			 values="auto;Auto|digest;Digest|basic;Basic|none;None" default="auto"/>
 	<setting label="TVH stream profile" type="keyenum" id="profile"
 			 values="pass;pass|mpegts;mpegts|matroska;matroska|htsp;htsp|webtv-h264-aac-matroska;webtv-h264-aac-matroska|webtv-h264-aac-mpegts;webtv-h264-aac-mpegts" default="pass"/>
+	<!-- 1.0.2: vlastny nazov stream profilu (napr. vlastny transkodovaci profil
+	     na serveri). Ak je vyplneny, ma prednost pred vyberom vyssie. -->
+	<setting label="Custom stream profile name (overrides the list above)" type="text" id="profile_custom" default=""/>
 	<setting label="Timeout (seconds)" type="text" id="loading_timeout" default="15"/>
 
 	<!-- 0.72.0: vlastny vyber prehravaca pre prehravanie priamo v doplnku

@@ -15,7 +15,6 @@ import re
 import io
 import time
 import gzip
-import base64
 
 try:
 	import lzma  # Py3
@@ -28,20 +27,76 @@ except ImportError:
 # urllib for Py2/Py3
 try:
 	from urllib.request import Request, urlopen
-	from urllib.parse import urlparse, parse_qs
+	from urllib.parse import urlparse, parse_qs, urlunparse
 except ImportError:
 	from urllib2 import Request, urlopen
-	from urlparse import urlparse, parse_qs
+	from urlparse import urlparse, parse_qs, urlunparse
 
 
 # -------------------------------------------------
 # Regex helpers for M3U parsing
 # -------------------------------------------------
 _EXTINF_ATTR_RE = re.compile(r'([a-zA-Z0-9_-]+)="([^"]*)"')
-_EXTINF_LINE_RE = re.compile(r'^#EXTINF:-?\d+\s*(.*?),(.*)$')
+# FIX 1.0.0: riadok sa už nedelí na prvej čiarke celého riadku (rozbíjalo
+# atribúty s čiarkou v hodnote, napr. group-title="Kids, Family") — regex
+# vezme len hlavičku `#EXTINF:<dĺžka>` a zvyšok; viď split_extinf().
+_EXTINF_HEAD_RE = re.compile(r'^#EXTINF:\s*-?\d*(?:\.\d+)?\s*(.*)$')
 
 # Default HTTP User-Agent (some IPTV providers reject default urllib UA)
 _DEFAULT_UA = 'Mozilla/5.0 (Enigma2; Tvheadend-plugin) M3UProvider/1.0'
+
+# FIX 1.0.0 (K): query parametre, ktorých hodnota sa v logoch maskuje
+_SECRET_QUERY_KEYS = ('auth', 'ticket', 'token', 'password', 'pass', 'pwd')
+_SECRET_QUERY_RE = re.compile(
+	r'(?i)\b(' + '|'.join(_SECRET_QUERY_KEYS) + r')=([^&#\s]*)')
+
+
+def mask_url(url):
+	"""Vráti URL bezpečnú do logu: hodnoty auth=/ticket=/token= (a pod.)
+	v query nahradí '***' a userinfo `user:pass@` nahradí `***@`.
+	Nikdy nevyhodí výnimku — pri chybe vráti '<url>'."""
+	if not url:
+		return ''
+	try:
+		u = url if isinstance(url, (str, type(u''))) else str(url)
+	except Exception:
+		return '<url>'
+	try:
+		p = urlparse(u)
+		netloc = p.netloc or ''
+		if '@' in netloc:
+			netloc = '***@' + netloc.rsplit('@', 1)[1]
+		u = urlunparse((p.scheme, netloc, p.path, p.params, p.query, p.fragment))
+	except Exception:
+		pass
+	try:
+		u = _SECRET_QUERY_RE.sub(lambda m: m.group(1) + '=***', u)
+	except Exception:
+		return '<url>'
+	return u
+
+
+def split_extinf(line):
+	"""Rozdelí #EXTINF riadok na (attrs dict, display_name).
+
+	Atribúty (key="value") sa najprv vyberú regexom z celého riadku a zo
+	zvyšku sa ODSTRÁNIA; názov je potom text za prvou čiarkou (čiarky
+	vnútri hodnôt atribútov už v zvyšku nie sú, čiarky v samotnom názve
+	ostávajú). Zvláda
+	`#EXTINF:-1 tvg-name="News, Sport" group-title="Kids, Family",Channel One`.
+	Vráti (None, None) ak riadok nie je #EXTINF."""
+	m = _EXTINF_HEAD_RE.match(line)
+	if not m:
+		return None, None
+	rest = m.group(1) or ''
+	attrs = dict(_EXTINF_ATTR_RE.findall(rest))
+	stripped = _EXTINF_ATTR_RE.sub('', rest)
+	if ',' in stripped:
+		name = stripped.split(',', 1)[1]
+	else:
+		# bez čiarky: niektoré generátory ju vynechajú — názov = zvyšok
+		name = stripped
+	return attrs, name.strip()
 
 
 def _strip_bom(s):
@@ -90,20 +145,19 @@ class M3UProvider(object):
 	External M3U + XMLTV content provider.
 
 	Usage:
-		p = M3UProvider(m3u_url='http://...', epg_url='http://...',
-		                http_auth='user:pass', log=print)
+		p = M3UProvider(m3u_url='http://...', epg_url='http://...', log=print)
 		p.fetch_and_parse()
 		for cat in p.get_categories():
 			for ch in p.get_channels_by_category(cat):
 				...
+
+	Pozn. (audit 1.0.0): parametre `http_auth` a `user_agent` odstránené —
+	žiadny volajúci ich nenastavoval (auth ide cez token v URL).
 	"""
 
-	def __init__(self, m3u_url, epg_url=None, http_auth=None,
-	             user_agent=None, timeout=30, log=None):
+	def __init__(self, m3u_url, epg_url=None, timeout=30, log=None):
 		self.m3u_url = m3u_url
 		self.epg_url = epg_url or ''
-		self.http_auth = http_auth or ''
-		self.user_agent = user_agent or _DEFAULT_UA
 		self.timeout = timeout
 		self.log = log or (lambda *a, **k: None)
 
@@ -117,13 +171,8 @@ class M3UProvider(object):
 
 	def _build_request(self, url):
 		req = Request(url)
-		req.add_header('User-Agent', self.user_agent)
+		req.add_header('User-Agent', _DEFAULT_UA)
 		req.add_header('Accept', '*/*')
-
-		if self.http_auth and ':' in self.http_auth:
-			token = base64.b64encode(
-				self.http_auth.encode('utf-8')).decode('ascii')
-			req.add_header('Authorization', 'Basic ' + token)
 		return req
 
 	def _http_get_bytes(self, url):
@@ -145,7 +194,7 @@ class M3UProvider(object):
 			raise ValueError('M3U URL is empty')
 
 		t0 = time.time()
-		self.log('[M3U] Fetching playlist: %s' % self.m3u_url)
+		self.log('[M3U] Fetching playlist: %s' % mask_url(self.m3u_url))
 		self._raw_m3u_bytes = self._http_get_bytes(self.m3u_url)
 		txt = _strip_bom(_decode_bytes(self._raw_m3u_bytes))
 		self._parse_m3u_text(txt)
@@ -157,20 +206,33 @@ class M3UProvider(object):
 		self._auth_tvg_logos()
 
 		if fetch_epg and self.epg_url:
-			try:
-				t1 = time.time()
-				self.log('[M3U] Fetching EPG: %s' % self.epg_url)
-				raw = self._http_get_bytes(self.epg_url)
-				self._raw_epg_bytes = raw
-				# Validation pre diagnostiku — ak je odpoveď korumpovaná,
-				# _maybe_decompress hodí exception ktorú catch-neme nižšie
-				# a zalogujeme. _raw_epg_bytes ostáva nastavený (m3u_manager
-				# si decompress robí sám pri injection).
-				_maybe_decompress(raw, self.epg_url)
-				self.log('[M3U] EPG fetched OK, %d bytes (%.1fs)' %
-				         (len(raw), time.time() - t1))
-			except Exception as e:
-				self.log('[M3U] EPG fetch/parse failed: %s' % e)
+			self.fetch_epg()
+
+	def fetch_epg(self, epg_url=None):
+		"""Stiahne XMLTV do self._raw_epg_bytes (bez parsovania). FIX 1.0.0:
+		vyčlenené z fetch_and_parse, aby manager mohol EPG URL odvodiť AŽ
+		po parsovaní playlistu (guard looks_like_tvh_playlist). Vráti True
+		pri úspechu; chyby loguje a vracia False (rovnako ako doteraz)."""
+		if epg_url:
+			self.epg_url = epg_url
+		if not self.epg_url:
+			return False
+		try:
+			t1 = time.time()
+			self.log('[M3U] Fetching EPG: %s' % mask_url(self.epg_url))
+			raw = self._http_get_bytes(self.epg_url)
+			self._raw_epg_bytes = raw
+			# Validation pre diagnostiku — ak je odpoveď korumpovaná,
+			# _maybe_decompress hodí exception ktorú catch-neme nižšie
+			# a zalogujeme. _raw_epg_bytes ostáva nastavený (m3u_manager
+			# si decompress robí sám pri injection).
+			_maybe_decompress(raw, self.epg_url)
+			self.log('[M3U] EPG fetched OK, %d bytes (%.1fs)' %
+			         (len(raw), time.time() - t1))
+			return True
+		except Exception as e:
+			self.log('[M3U] EPG fetch/parse failed: %s' % e)
+			return False
 
 	# ------------------ Parsers ------------------
 
@@ -196,13 +258,17 @@ class M3UProvider(object):
 				continue
 
 			if ln.startswith('#EXTINF'):
-				m = _EXTINF_LINE_RE.match(ln)
-				if not m:
+				attrs, display_name = split_extinf(ln)
+				if attrs is None:
 					current = None
 					continue
-				attr_blob = m.group(1) or ''
-				display_name = (m.group(2) or '').strip()
-				attrs = dict(_EXTINF_ATTR_RE.findall(attr_blob))
+				# FIX 1.0.0 (review): bez názvu za čiarkou vezmi tvg-name;
+				# ak nie je ani ten, položku preskoč (ako 0.2.1)
+				if not display_name:
+					display_name = (attrs.get('tvg-name') or '').strip()
+				if not display_name:
+					current = None
+					continue
 
 				current = {
 					'name': display_name,

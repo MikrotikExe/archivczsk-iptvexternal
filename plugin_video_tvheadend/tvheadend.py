@@ -259,9 +259,14 @@ class Tvheadend(TvhHtspApiMixin, TvhStreamUrlMixin, TvhDataApiMixin, TvhPiconMix
 	# ------------------------------------------------------------------
 
 	def _timeout(self):
+		# 0 = bez timeoutu (vedoma volba pre velke EPG exporty, kde prvy
+		# bajt trva dlhsie ako 15 s). FIX 1.0.2: zaporna/neplatna hodnota
+		# uz nepadne na None, ale na predvolenych 15 s.
 		try:
 			t = int(self.cp.get_setting('loading_timeout'))
 		except Exception:
+			t = 15
+		if t < 0:
 			t = 15
 		return None if t == 0 else t
 
@@ -282,7 +287,13 @@ class Tvheadend(TvhHtspApiMixin, TvhStreamUrlMixin, TvhDataApiMixin, TvhPiconMix
 			return '%s://%s:%s' % (scheme, hostname, port)
 
 		port = str(self.cp.get_setting('port') or '9981').strip()
-		use_https = bool(self.cp.get_setting('use_https'))
+		# FIX 1.0.2 (audit): bool("false") je True — ak framework vrati
+		# retazec (starsi format settings), HTTPS by sa zaplo samo.
+		raw_https = self.cp.get_setting('use_https')
+		if isinstance(raw_https, bool):
+			use_https = raw_https
+		else:
+			use_https = str(raw_https or '').strip().lower() in ('1', 'true', 'yes', 'on')
 		scheme = 'https' if use_https else 'http'
 		return '%s://%s:%s' % (scheme, host, port)
 

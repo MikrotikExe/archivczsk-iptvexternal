@@ -42,9 +42,22 @@ class TvhDataApiMixin(object):
 		return result
 
 	def invalidate_channels_cache(self):
-		"""Zmaže cache kanálov."""
+		"""Zmaže cache kanálov.
+
+		FIX 1.0.2: v HTSP režime kanály pochádzajú z HTSP metadát, ktoré majú
+		vlastnú cache (10 min). Predtým sa invalidovala len 60 s HTTP cache,
+		takže "Invalidate TVH channel cache" / plný refresh v HTSP režime
+		dostal znova starý zoznam bez práve pridaného kanála. Teraz sa
+		zneplatnia aj HTSP cache (dáta ostávajú ako záloha pre prípad
+		odmietnutého spojenia — pozri htsp_fetch_metadata)."""
 		if self._channels_cache is not None:
 			self._channels_cache.invalidate('channels')
+		for attr in ('_htsp_meta_ts', '_htsp_meta_epg_ts'):
+			if hasattr(self, attr):
+				try:
+					setattr(self, attr, 0)
+				except Exception:
+					pass
 
 	def get_channels_by_tag(self, tag_uuid):
 		channels = self.get_channels()

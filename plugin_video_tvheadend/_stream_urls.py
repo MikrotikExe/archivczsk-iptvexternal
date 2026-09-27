@@ -46,6 +46,13 @@ class TvhStreamUrlMixin(object):
 
 	def make_live_stream_url(self, channel_uuid=None, service_uuid=None, channel_title=None):
 		profile = (self.cp.get_setting('profile') or 'pass').strip()
+		# 1.0.2: vlastny nazov profilu ma prednost pred pevnym zoznamom
+		try:
+			custom = (self.cp.get_setting('profile_custom') or '').strip()
+		except Exception:
+			custom = ''
+		if custom:
+			profile = custom
 
 		# HTSP mód: stream ide PRIAMO cez TVH HTTP endpoint (ako 9981 mód) —
 		# žiadny vlastný proxy/remux cez 18888 (ten player odmietal). HTSP

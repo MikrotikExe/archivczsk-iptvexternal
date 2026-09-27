@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import os
 import re
 import time
-
-# FIX 0.57.0 (skyjet PR #22 review): urllib Py2/Py3 fallback nahradený
-# centrálnym tools_archivczsk.compat helper-om. Predtým bol 8-riadkový
-# try/except nested fallback (urllib.parse → urlparse → no-op lambda)
-# vrátane mŕtveho `urllib_parse = None` ošetrenia. Compat helper rieši
-# Py2/Py3 import path interne, módy a knižnice sú guaranteed dostupné.
-from tools_archivczsk.compat import urlparse as _url_urlparse
 
 from tools_archivczsk.generator.bouquet_xmlepg import BouquetXmlEpgGenerator, BouquetGenerator
 # FIX 0.57.0: framework volá download_picons cez parent triedu
@@ -26,6 +18,8 @@ from ._bouquet_common import BouquetCommonMixin
 from ._bouquet_tags import BouquetTagsMixin
 from ._bouquet_radio import BouquetRadioMixin
 from ._bouquet_dvb import BouquetDvbMixin
+from ._bouquet_picons import BouquetPiconsMixin
+from ._bouquet_sids import StableSidMap
 
 
 # FIX 0.48j: _PICON_LOG odstránené — logy idú cez print() do archivCZSK.log
@@ -58,31 +52,22 @@ def _mask_credentials(url):
 		return '***'
 
 
-# FIX 0.57.0: framework BouquetGeneratorTemplate.download_picons() volá
+# FIX 0.57.0: framework BouquetGeneratorTemplate.download_picons() volal
 # s.get(url) s URL formátu http://user:pass@host/path — Python requests
-# IGNORUJE inline credentials a nepošle HTTP Basic Auth header (security
-# policy z CVE-2023-32681). Výsledok: TVH vracia HTTP 401 pre VŠETKY
-# requests a framework len silently skip-ne file. Tento monkey-patch
-# nahradí framework download_picons vlastnou implementáciou ktorá
-# explicitne aplikuje auth (Basic alebo Digest auto-detect cez probe).
+# IGNORUJE inline credentials (CVE-2023-32681) → 401 na všetko. Preto sa
+# framework download_picons monkey-patchuje.
 #
-# Patch je idempotent (sentinel flag na triede) a aplikuje sa raz pri
-# prvom _TvhBouquetGenerator init-e per session.
-#
-# POZNÁMKA k vzťahu _patched_dp ↔ _remap_picons_to_bouquet (0.60.0):
-# _patched_dp rieši AUTH + integráciu s framework picon flow (framework
-# ho volá počas generovania bouquetu). _remap_picons_to_bouquet rieši
-# FINÁLNE SID-presné umiestnenie picon súborov (meno = service ref
-# z userbouquetu). Obe sú potrebné: bez _patched_dp framework download
-# zlyhá na 401; bez _remap by picony mali nesprávny SID a Enigma2 by
-# ich nezobrazila. _remap beží po _patched_dp a uloží picony pod
-# správnym menom.
+# FIX 1.0.2 (Juraj): patch je teraz NO-OP. Predtým obsahoval vlastný
+# download loop, ktorý bežal vo framework vlákne PARALELNE s
+# _remap_picons_to_bouquet (viď _bouquet_picons.py) — obe stahovali tie isté
+# súbory (rovnaké mená po normalizácii typu na 1), robili dve auth sondy a
+# framework loop preskakoval existujúce súbory bez ohľadu na to, či sedia
+# s kanálom. Jediná cesta je odteraz _remap_picons_to_bouquet: má presné
+# mená podľa userbouquetu, index zdrojov (zmena loga = stiahnuť znova) a
+# beží až po dokončení generovania, keď sú súbory na disku.
 def _install_picon_download_patch(cp):
-	"""Monkey-patch framework BouquetGeneratorTemplate.download_picons.
-
-	Args:
-	    cp: TvheadendContentProvider instance (pre logging cez cp.log_info/log_debug).
-	"""
+	"""Monkey-patch framework BouquetGeneratorTemplate.download_picons na no-op
+	(idempotentne, raz za session). Picony stahuje _remap_picons_to_bouquet."""
 	BGT = BouquetGeneratorTemplate
 	if getattr(BGT, '_tvh_dp_patched', False):
 		return
@@ -91,128 +76,11 @@ def _install_picon_download_patch(cp):
 
 	def _patched_dp(picons):
 		try:
-			cnt = len(picons) if picons else 0
-			_cp_ref.log_debug('[Tvheadend.debug] download_picons thread started: '
-				'%d picons' % cnt)
+			_cp_ref.log_debug('[Tvheadend.picons] framework download_picons (%d) '
+			                  'skipped — handled by _remap_picons_to_bouquet'
+			                  % (len(picons) if picons else 0))
 		except Exception:
 			pass
-
-		picon_dir = '/usr/share/enigma2/picon'
-		try:
-			if not os.path.exists(picon_dir):
-				os.mkdir(picon_dir)
-		except Exception as _e:
-			_cp_ref.log_error('[Tvheadend.picons] mkdir %s failed: %s' % (picon_dir, _e))
-			return
-
-		try:
-			import requests as _req
-			from requests.auth import HTTPDigestAuth as _DigestAuth
-		except ImportError as _ie:
-			_cp_ref.log_error('[Tvheadend.picons] requests library missing: %s' % _ie)
-			return
-
-		# Extract credentials z URL netloc + clean URLs (bez user:pass)
-		user = None
-		pwd = None
-		cleaned = {}
-		for _ref, _url in picons.items():
-			if not _url:
-				continue
-			try:
-				_p = _url_urlparse(_url)
-				if _p.username:
-					user = _p.username
-					pwd = _p.password or ''
-					_netloc = _p.hostname
-					if _p.port:
-						_netloc += ':' + str(_p.port)
-					from tools_archivczsk.compat import urlunparse as _urlunparse_compat
-					_clean_url = _urlunparse_compat((
-						_p.scheme, _netloc, _p.path,
-						_p.params, _p.query, _p.fragment))
-					cleaned[_ref] = _clean_url
-				else:
-					cleaned[_ref] = _url
-			except Exception:
-				cleaned[_ref] = _url
-
-		# Auto-detect Basic vs Digest auth cez probe na prvý URL
-		sess = _req.Session()
-		auth_mode = 'none'
-		if user is not None and cleaned:
-			_probe_url = next(iter(cleaned.values()))
-			try:
-				_pr = sess.get(_probe_url, auth=(user, pwd), timeout=8)
-				if _pr.status_code == 200:
-					sess.auth = (user, pwd)
-					auth_mode = 'basic'
-				elif _pr.status_code == 401:
-					_pr2 = sess.get(_probe_url, auth=_DigestAuth(user, pwd), timeout=8)
-					if _pr2.status_code == 200:
-						sess.auth = _DigestAuth(user, pwd)
-						auth_mode = 'digest'
-					else:
-						auth_mode = 'failed_both_basic_and_digest'
-				else:
-					auth_mode = 'failed_status_%d' % _pr.status_code
-			except Exception as _pe:
-				auth_mode = 'probe_error_%s' % _pe
-
-		_cp_ref.log_info('[Tvheadend.picons] auth probe: %s' % auth_mode)
-
-		# Skutočný download loop
-		written = 0
-		errs_404 = 0
-		errs_other = 0
-		exceptions = 0
-		skipped_exists = 0
-
-		def _picon_filename(ref):
-			# FIX 0.59.2 (audit, Juraj): Enigma2 pri picon lookupe VŽDY
-			# normalizuje service type (prvé pole service ref) na "1" — pre
-			# všetky streamované typy (1/4097/5001/5002/...). Framework ale
-			# generuje _ref s reálnym player_id (napr. "5002_0_1_..."), takže
-			# picon súbor sa uložil ako "5002_0_1_...png" a Enigma2 ho pri
-			# zobrazení (kde hľadá "1_0_1_...png") nikdy nenašiel. Preto
-			# TVH picony "nesedeli" hoci boli na disku.
-			# Oprava: normalizuj prvé pole na "1" pri ukladaní.
-			parts = ref.split('_')
-			if len(parts) >= 1 and parts[0] != '1':
-				parts[0] = '1'
-			return '_'.join(parts)
-
-		try:
-			for _ref, _url in cleaned.items():
-				if not _url:
-					continue
-				_fileout = picon_dir + '/' + _picon_filename(_ref) + '.png'
-				if os.path.exists(_fileout):
-					skipped_exists += 1
-					continue
-				try:
-					_r = sess.get(_url, timeout=10)
-					if _r.status_code == 200 and _r.content:
-						_ct = _r.headers.get('content-type', '').lower()
-						if _ct.startswith('image/') or len(_r.content) > 100:
-							with open(_fileout, 'wb') as _f:
-								_f.write(_r.content)
-							written += 1
-						else:
-							errs_other += 1
-					elif _r.status_code == 404:
-						errs_404 += 1
-					else:
-						errs_other += 1
-				except Exception:
-					exceptions += 1
-		except Exception as _le:
-			_cp_ref.log_error('[Tvheadend.picons] download loop crashed: %s' % _le)
-
-		_cp_ref.log_info('[Tvheadend.picons] download done: '
-			'written=%d, skipped_exists=%d, errs_404=%d, '
-			'errs_other=%d, exceptions=%d' %
-			(written, skipped_exists, errs_404, errs_other, exceptions))
 
 	BGT.download_picons = staticmethod(_patched_dp)
 	BGT._tvh_dp_patched = True
@@ -285,7 +153,7 @@ class _TvhBouquetGenerator(BouquetGenerator):
 				self.name = custom
 
 
-class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, BouquetRadioMixin, BouquetDvbMixin, BouquetXmlEpgGenerator):
+class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, BouquetRadioMixin, BouquetDvbMixin, BouquetPiconsMixin, BouquetXmlEpgGenerator):
 	"""
 	Tvheadend -> ArchivCZSK bouquet + xmlepg + enigmaepg generator
 	"""
@@ -327,6 +195,21 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 
 		self._channels = []
 		self._key_to_url = {}
+		# FIX 1.0.2: perzistentna mapa kanal -> SID (viď _bouquet_sids.py).
+		# Vytvara sa tu (nie lenivo), lebo load_channel_list bezi aj z dvoch
+		# vlakien naraz a dve sucasne inicializacie by dali dve mapy.
+		try:
+			self._sid_map = StableSidMap(log=self._log)
+		except Exception as e:
+			self._sid_map = None
+			try:
+				self.cp.log_error('[Tvheadend.bouquet] StableSidMap init failed: %s' % e)
+			except Exception:
+				pass
+		# True = pred najblizsim generovanim bouquetu zmazat vsetky TVH
+		# picony a stiahnut ich nanovo (jednorazovo po zavedeni stabilnych
+		# SID, alebo na ziadost akcie "plny refresh piconov").
+		self._picon_wipe_pending = False
 		self._epg_cache = None
 		self._epg_cache_ts = 0  # FIX 0.48c: TTL stamp pre _epg_cache
 		self._tagmap = None
@@ -420,6 +303,13 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 
 		channels = sorted(channels, key=_num)
 
+		# FIX 1.0.2: stabilne SID. Cislo kanala uz NIE je 'id' (=SID) kanala;
+		# sluzi len na zoradenie bouquetu. SID sa prideli raz a drzi sa
+		# kanala (podla jeho uuid) aj po precislovani/pridani kanalov,
+		# takze picon subory 1_0_1_<SID>_... ostavaju spravne priradene.
+		sid_map = self._sid_map
+		seeding_now = bool(sid_map is not None and sid_map.seeded)
+
 		local_channels = []
 		local_key_to_url = {}
 		seen_uuids = set()
@@ -463,6 +353,13 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 			ch_id = number if number > 0 else fallback_id
 			if number <= 0:
 				fallback_id += 1
+			if sid_map is not None:
+				try:
+					stable = sid_map.get(uuid, seed_id=ch_id)
+					if stable:
+						ch_id = stable
+				except Exception as e:
+					self._log("load_channel_list: sid_map.get(%s) failed: %s" % (uuid, e))
 
 			item = {
 				'uuid': uuid,
@@ -489,6 +386,27 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 		# Atomické priradenie — až teraz, keď je lokálny list kompletný.
 		self._channels = local_channels
 		self._key_to_url = local_key_to_url
+
+		if sid_map is not None:
+			try:
+				saved = sid_map.save()
+			except Exception:
+				saved = False
+			# Jednorazovy plny reset piconov AZ ked je mapa bezpecne na disku.
+			# Keby sa neulozila (plny flash, read-only data dir), kazdy start
+			# by znova "seedoval" a znova mazal picony — to nechceme.
+			if seeding_now:
+				if saved:
+					self._picon_wipe_pending = True
+					self._log("load_channel_list: SID mapa vytvorena (%d kanalov) — "
+					          "picony sa jednorazovo stiahnu nanovo" % len(sid_map))
+				else:
+					try:
+						self.cp.log_error('[Tvheadend.bouquet] SID mapu sa nepodarilo '
+						                  'ulozit do %s — stabilne SID nebudu fungovat, '
+						                  'skontroluj volne miesto/prava' % sid_map.path)
+					except Exception:
+						pass
 
 		# FIX 0.57.0 debug: koľko channels skončilo s picon URL nastavenou
 		try:
@@ -638,6 +556,18 @@ class TvheadendBouquetXmlEpgGenerator(BouquetCommonMixin, BouquetTagsMixin, Bouq
 			ret = None
 
 		if enabled_before:
+			# FIX 1.0.2: jednorazovy plny reset piconov — po zavedeni
+			# stabilnych SID (mapa prave vznikla) alebo na ziadost akcie
+			# "Force re-download all TVH picons". Maze sa AZ TU (po parent
+			# volani), lebo load_channel_list, ktory priznak nastavuje, bezi
+			# vnutri parent refresh_bouquet. _remap nizsie potom stiahne vsetko.
+			if self._picon_wipe_pending and self.get_setting('enable_picons'):
+				self._picon_wipe_pending = False
+				try:
+					self._wipe_tvh_picons()
+				except Exception as e:
+					self._log("refresh_bouquet: _wipe_tvh_picons raised: %s" % e)
+
 			# Enable path: rename .tv -> .radio + presun referencií
 			try:
 				self._fix_radio_bouquet_filenames()

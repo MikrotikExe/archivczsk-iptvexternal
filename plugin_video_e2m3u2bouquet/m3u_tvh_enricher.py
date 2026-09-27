@@ -269,14 +269,22 @@ def enrich_with_tvh(provider, tvh_client, log=None,
 	return stats
 
 
-def derive_tvh_xmltv_url(tvh_client):
+def derive_tvh_xmltv_url(tvh_client, channels=None):
 	"""
 	Returns TVH's XMLTV endpoint URL (with credentials) for use as
 	m3u_epg_url. The channel/@id in this XMLTV matches channel UUIDs,
 	so after enrichment our channels.xml will reference the right ids.
 
 	Path: <base>/xmltv/channels   (TVH 4.2+ standard)
+
+	FIX 1.0.0: ak sú dané `channels` (parsed M3U), URL sa odvodí LEN keď
+	playlist naozaj vyzerá ako TVH (looks_like_tvh_playlist) — is_tvh_url
+	matchuje akúkoľvek URL s /playlist/ /stream/ /api/, takže sa predtým
+	XMLTV URL odvodzovala aj pre cudzie IPTV playlisty (zbytočný 404
+	fetch na cudzom serveri).
 	"""
+	if channels is not None and not looks_like_tvh_playlist(channels):
+		return ''
 	try:
 		base = tvh_client.base_url()
 	except Exception:

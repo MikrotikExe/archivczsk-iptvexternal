@@ -171,16 +171,25 @@ def inject_epg_into_enigma(provider, xmltv_bytes, log=None,
 		log('[M3U-epg] eEPGCache not available (not running on Enigma2?): %s' % e)
 		return stats
 
-	# Build lookup: lower(channel_id) -> short_service_ref
+	# Build lookup: lower(channel_id) -> [short_service_ref, ...]
 	# All keys normalised to TEXT type so Py2 str/unicode mix doesn't
 	# break dict lookup later when matching against XMLTV channel ids.
-	id_to_ref = {}
+	#
+	# FIX 1.0.0: jedno tvg-id môže patriť viacerým service refom (HD/SD
+	# variant s rovnakým EPG id, ten istý kanál vo viacerých kategóriách,
+	# alebo jeden URL s viacerými refmi z bouquetu — `_service_refs`).
+	# Predtým "first-write wins" → EPG dostal len prvý z nich.
+	id_to_refs = {}
 	for ch in provider.get_all_channels():
-		full_ref = ch.get('_service_ref')
-		if not full_ref:
-			continue
-		sref = _service_ref_for_epg(full_ref)
-		if not sref:
+		full_refs = list(ch.get('_service_refs') or [])
+		if ch.get('_service_ref') and ch.get('_service_ref') not in full_refs:
+			full_refs.insert(0, ch.get('_service_ref'))
+		srefs = []
+		for full_ref in full_refs:
+			sref = _service_ref_for_epg(full_ref)
+			if sref and sref not in srefs:
+				srefs.append(sref)
+		if not srefs:
 			continue
 
 		ids = set()
@@ -192,11 +201,16 @@ def inject_epg_into_enigma(provider, xmltv_bytes, log=None,
 				ids.add(_to_text(alias).lower())
 
 		for cid in ids:
-			# First-write wins (in case different M3U channels share an alias)
-			id_to_ref.setdefault(cid, sref)
+			lst = id_to_refs.setdefault(cid, [])
+			for sref in srefs:
+				if sref not in lst:
+					lst.append(sref)
 
+	all_refs = set()
+	for lst in id_to_refs.values():
+		all_refs.update(lst)
 	log('[M3U-epg] built id->service_ref map: %d ids -> %d unique services' %
-	    (len(id_to_ref), len(set(id_to_ref.values()))))
+	    (len(id_to_refs), len(all_refs)))
 
 	# Stream-parse XMLTV
 	# IMPORTANT: cElementTree on Py2 rejects unicode event names with
@@ -222,8 +236,8 @@ def inject_epg_into_enigma(provider, xmltv_bytes, log=None,
 				elem.clear()
 				continue
 
-			sref = id_to_ref.get(channel_id)
-			if not sref:
+			srefs = id_to_refs.get(channel_id)
+			if not srefs:
 				elem.clear()
 				continue
 
@@ -261,7 +275,9 @@ def inject_epg_into_enigma(provider, xmltv_bytes, log=None,
 			# Event tuple: (start, duration, title, short, long, event_type)
 			ev = (int(start), int(duration),
 			      t_native, sd_native, ld_native, 0)
-			events_by_ref.setdefault(sref, []).append(ev)
+			# FIX 1.0.0: tie isté eventy do každého refu so zdieľaným tvg-id
+			for sref in srefs:
+				events_by_ref.setdefault(sref, []).append(ev)
 			stats['programmes_matched'] += 1
 			elem.clear()
 	except Exception as e:

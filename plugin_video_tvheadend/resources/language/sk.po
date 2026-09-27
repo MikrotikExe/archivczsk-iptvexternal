@@ -891,3 +891,23 @@ msgstr "Pokračovať v prehrávaní (pamätať poslednú pozíciu)"
 #. resources/settings.xml
 msgid "Look up unknown titles on IMDb (background, opt-in)"
 msgstr "Online vyhľadať neznáme tituly na IMDb (na pozadí, opt-in)"
+
+#. 1.0.2
+msgid "Channel SID map"
+msgstr "Mapa SID kanálov"
+
+#. 1.0.2
+msgid "Custom stream profile name (overrides the list above)"
+msgstr "Vlastný názov stream profilu (má prednosť pred zoznamom vyššie)"
+
+#. 1.0.2
+msgid "Picon source index"
+msgstr "Index zdrojov piconov"
+
+#. 1.0.2
+msgid "✗ Picon download is disabled — enable 'Automatically download picons' in Userbouquet settings"
+msgstr "✗ Sťahovanie piconov je vypnuté — zapnite 'Automaticky sťahovať picony pri exporte userbouquet'"
+
+#. 1.0.2
+msgid "✗ Userbouquet export is disabled — enable it first"
+msgstr "✗ Export userbouquetu je vypnutý — najprv ho zapnite"
