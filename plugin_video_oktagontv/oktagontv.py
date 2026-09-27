@@ -8,21 +8,42 @@
 # spoločná; líšia sa len identifikátory organizácie/aplikácie a niektoré kľúče.
 #
 # Všetky identifikátory (API kľúče, organization/tenant ID) sú overené z odchytenej
-# komunikácie webu oktagon.tv - viď README.
+# komunikácie webu oktagon.tv (HAR záznamy z 28.7. a 1.8.2026 - viď komentáre pri konštantách).
 #
 # Kód je písaný tak, aby bežal na Pythone 2 aj 3 (staršie Enigma2 image).
 
 from tools_archivczsk.contentprovider.exception import LoginException, AddonErrorException
 from tools_archivczsk.debug.http import dump_json_request
 from tools_archivczsk.string_utils import int_to_roman
-from tools_archivczsk.date_utils import iso8601_to_timestamp
 from time import time
-from datetime import datetime
 import json
 import os
 import sys
 
 DUMP_API_REQUESTS = False
+
+# ##################################################################################################################
+
+def to_text(msg):
+	"""
+	Prevedie hodnotu na textový reťazec bezpečne pre Python 2 aj 3.
+	Na py2 sa bytes (napr. preložený text z _()) dekódujú z utf-8, aby sa dali
+	spájať s unicode reťazcami bez UnicodeDecodeError.
+	"""
+	if sys.version_info[0] == 2:
+		try:
+			if isinstance(msg, str):
+				return msg.decode('utf-8', 'ignore')
+			return unicode(msg)  # noqa: F821 - existuje len na py2
+		except Exception:
+			return u''
+
+	try:
+		if isinstance(msg, bytes):
+			return msg.decode('utf-8', 'ignore')
+		return str(msg)
+	except Exception:
+		return ''
 
 # ##################################################################################################################
 
@@ -41,16 +62,21 @@ def error_text(e):
 	if msg is None:
 		msg = e
 
-	if sys.version_info[0] == 2:
-		try:
-			return unicode(msg)  # noqa: F821 - existuje len na py2
-		except Exception:
-			return ''
+	return to_text(msg)
+
+# ##################################################################################################################
+
+def safe_url(url):
+	"""
+	Vráti URL bez query stringu - do logu nepatrí sessionId ani pairingId.
+	"""
+	if not url:
+		return url
 
 	try:
-		return str(msg)
+		return url.split('?', 1)[0]
 	except Exception:
-		return ''
+		return url
 
 # ##################################################################################################################
 
@@ -382,18 +408,26 @@ class OktagonTVClient(object):
 
 	# ##################################################################################################################
 
+	def reset_login_data(self):
+		# zahodí tokeny, ale device_id ostáva - web ho posiela do getSourceUrl a má byť stabilné
+		device_id = self.login_data.get('device_id')
+		self.login_data = {}
+		if device_id:
+			self.login_data['device_id'] = device_id
+
 	def refresh_login(self):
-		if self.login_data.get('valid_to', 0) < int(time()) and self.login_data.get('refresh_token'):
+		# 60 s rezerva, aby token nevypršal medzi kontrolou a samotnou požiadavkou
+		if self.login_data.get('valid_to', 0) - 60 < int(time()) and self.login_data.get('refresh_token'):
 			self.cp.log_debug("Login refresh is needed")
 			try:
 				self.refresh_id_token()
 			except:
 				self.cp.log_debug("Failed to refresh ID token")
-				self.login_data = {}
+				self.reset_login_data()
 
 		if self.cp.get_settings_checksum(('username', 'password',)) != self.login_data.get('checksum'):
 			self.cp.log_debug("Login data changed - starting fresh login using name/password")
-			self.login_data = {}
+			self.reset_login_data()
 			self.login()
 			self.user_info = {}
 
@@ -464,42 +498,27 @@ class OktagonTVClient(object):
 
 	# ##################################################################################################################
 
-	def load_screen(self, screen_id):
-		query = {
-			"from": [{"collectionId": "screens"}],
-			"where": {
-				"fieldFilter": {
-					"field": {"fieldPath": "screenId"},
-					"op": "EQUAL",
-					"value": {"stringValue": screen_id}
-				}
-			},
-			"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}],
-			"limit": 2
-		}
-		return self.call_firestore_api(query, org_root=True)
+	def call_firestore_api_paged(self, query, org_root=False, max_pages=20):
+		# Firestore runQuery vráti najviac "limit" dokumentov. Aby sa nestratili položky
+		# nad limit (dlhý zoznam turnajov, zápasov v evente), stránkuje sa cez "offset"
+		# nad tým istým orderBy, kým stránka nevráti menej ako "limit" dokumentov.
+		page_size = int(query.get('limit') or 100)
+		ret = []
 
-	# ##################################################################################################################
+		for page in range(max_pages):
+			page_query = dict(query)
+			page_query['limit'] = page_size
+			page_query['offset'] = page * page_size
 
-	def load_tvchannel_ref(self, ref):
-		query = {
-			"from": [{"collectionId": "videos"}],
-			"where": {
-				"compositeFilter": {
-					"op": "AND",
-					"filters": [
-						{"fieldFilter": {"field": {"fieldPath": "tvChannelRef"}, "op": "EQUAL", "value": {"referenceValue": ref}}},
-						{"fieldFilter": {"field": {"fieldPath": "from"}, "op": "LESS_THAN", "value": {"timestampValue": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:00.000000000Z')}}}
-					]
-				}
-			},
-			"orderBy": [
-				{"field": {"fieldPath": "from"}, "direction": "DESCENDING"},
-				{"field": {"fieldPath": "__name__"}, "direction": "DESCENDING"}
-			],
-			"limit": 2
-		}
-		return self.call_firestore_api(query)
+			items = self.call_firestore_api(page_query, org_root=org_root)
+			ret.extend(items)
+
+			if len(items) < page_size:
+				break
+		else:
+			self.cp.log_debug("Firestore query reached max pages (%d x %d) - result may be truncated" % (max_pages, page_size))
+
+		return ret
 
 	# ##################################################################################################################
 
@@ -532,100 +551,13 @@ class OktagonTVClient(object):
 
 	# ##################################################################################################################
 
-	def load_tags_by_id(self, tag_ids):
-		MAX_CHUNK_SIZE = 30
-		if not isinstance(tag_ids, list):
-			tag_ids = [tag_ids]
-
-		fdata = [{'stringValue': x} for x in tag_ids]
-		fdata_chunks = [fdata[i:i + MAX_CHUNK_SIZE] for i in range(0, len(fdata), MAX_CHUNK_SIZE)]
-
-		ret = []
-		for fdata_chunk in fdata_chunks:
-			query = {
-				"from": [{"collectionId": "tags"}],
-				"where": {"fieldFilter": {"field": {"fieldPath": "tagId"}, "op": "IN", "value": {"arrayValue": {"values": fdata_chunk}}}},
-				"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}]
-			}
-			ret.extend(self.call_firestore_api(query, org_root=True))
-
-		self.dump_json('tags-by-id-' + str(tag_ids), ret)
-		return ret
-
-	# ##################################################################################################################
-
-	def load_tags_by_ref(self, ref_values):
-		MAX_CHUNK_SIZE = 30
-		if not isinstance(ref_values, list):
-			ref_values = [ref_values]
-
-		fdata = [{'referenceValue': x} for x in ref_values]
-		fdata_chunks = [fdata[i:i + MAX_CHUNK_SIZE] for i in range(0, len(fdata), MAX_CHUNK_SIZE)]
-
-		ret = []
-		for fdata_chunk in fdata_chunks:
-			query = {
-				"from": [{"collectionId": "tags"}],
-				"where": {"fieldFilter": {"field": {"fieldPath": "__name__"}, "op": "IN", "value": {"arrayValue": {"values": fdata_chunk}}}},
-				"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}]
-			}
-			ret.extend(self.call_firestore_api(query, org_root=True))
-
-		return ret
-
-	# ##################################################################################################################
-
-	def load_videos(self, ref_values):
-		MAX_CHUNK_SIZE = 30
-		if not isinstance(ref_values, list):
-			ref_values = [ref_values]
-
-		fdata = [{'referenceValue': x} for x in ref_values]
-		fdata_chunks = [fdata[i:i + MAX_CHUNK_SIZE] for i in range(0, len(fdata), MAX_CHUNK_SIZE)]
-
-		ret = []
-		for fdata_chunk in fdata_chunks:
-			query = {
-				"from": [{"collectionId": "videos"}],
-				"where": {"fieldFilter": {"field": {"fieldPath": "__name__"}, "op": "IN", "value": {"arrayValue": {"values": fdata_chunk}}}},
-				"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}]
-			}
-			ret.extend(self.call_firestore_api(query))
-
-		return ret
-
-	# ##################################################################################################################
-
-	def load_videos_for_tag(self, tag_id, season_nr=None):
-		query = {
-			"from": [{"collectionId": "videos"}],
-			"where": {
-				"compositeFilter": {
-					"op": "AND",
-					"filters": [
-						{"fieldFilter": {"field": {"fieldPath": "tags"}, "op": "ARRAY_CONTAINS_ANY", "value": {"arrayValue": {"values": [{"referenceValue": self.TAGS_ROOT + tag_id}]}}}},
-						{"fieldFilter": {"field": {"fieldPath": "publishedStatus"}, "op": "EQUAL", "value": {"stringValue": "PUBLISHED"}}},
-						{"fieldFilter": {"field": {"fieldPath": "transcodingStatus"}, "op": "EQUAL", "value": {"stringValue": "ENCODING_DONE"}}},
-						{"fieldFilter": {"field": {"fieldPath": "seasonNumber"}, "op": "EQUAL", "value": {"integerValue": season_nr or 1}}}
-					]
-				}
-			},
-			"orderBy": [
-				{"field": {"fieldPath": "episodeNumber"}, "direction": "ASCENDING"},
-				{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}
-			]
-		}
-		ret = self.call_firestore_api(query)
-		self.dump_json('videos-for-tag', ret)
-		return ret
-
-	# ##################################################################################################################
-
 	def load_videos_by_tag(self, tag_id, limit=100):
 		# Zápasy v turnaji / epizódy relácie.
 		# 1. pokus = presne ten dopyt, ktorý posiela web (overené z HAR /sk/fights):
 		#    organizationRef + transcodingStatus + publishedStatus + tags ARRAY_CONTAINS_ANY,
 		#    orderBy created DESC. Tento tvar má v Firestore zaručene vytvorený index.
+		# Záložný dopyt sa použije LEN keď prvý zlyhá (chýbajúci index -> HTTP 400),
+		# nie keď legitímne nič nevráti - prázdny turnaj je prázdny.
 		tag_ref = self.TAGS_ROOT + tag_id
 
 		web_query = {
@@ -649,38 +581,36 @@ class OktagonTVClient(object):
 		}
 
 		try:
-			ret = self.call_firestore_api(web_query)
-			if ret:
-				self.dump_json('videos-by-tag-' + tag_id, ret)
-				return ret
+			ret = self.call_firestore_api_paged(web_query)
+			self.dump_json('videos-by-tag-' + tag_id, ret)
+			return ret
+		except LoginException:
+			raise
 		except Exception as e:
 			self.cp.log_debug("load_videos_by_tag (web query) failed: %s" % error_text(e))
 
-		# 2. pokus (fallback): jednoduchší dopyt bez orderBy created
-		def _query(filters):
-			return {
-				"from": [{"collectionId": "videos"}],
-				"where": {"compositeFilter": {"op": "AND", "filters": filters}} if len(filters) > 1 else filters[0],
-				"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}],
-				"limit": limit
-			}
-
-		tag_filter = {"fieldFilter": {"field": {"fieldPath": "tags"}, "op": "ARRAY_CONTAINS", "value": {"referenceValue": tag_ref}}}
-		published = {"fieldFilter": {"field": {"fieldPath": "publishedStatus"}, "op": "EQUAL", "value": {"stringValue": "PUBLISHED"}}}
+		# 2. pokus (fallback): jednoduchší dopyt bez orderBy created, ale stále len publikované videá
+		fallback_query = {
+			"from": [{"collectionId": "videos"}],
+			"where": {
+				"compositeFilter": {
+					"op": "AND",
+					"filters": [
+						{"fieldFilter": {"field": {"fieldPath": "tags"}, "op": "ARRAY_CONTAINS", "value": {"referenceValue": tag_ref}}},
+						{"fieldFilter": {"field": {"fieldPath": "publishedStatus"}, "op": "EQUAL", "value": {"stringValue": "PUBLISHED"}}}
+					]
+				}
+			},
+			"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}],
+			"limit": limit
+		}
 
 		try:
-			ret = self.call_firestore_api(_query([tag_filter, published]))
-			if ret:
-				self.dump_json('videos-by-tag-' + tag_id, ret)
-				return ret
-		except Exception as e:
-			self.cp.log_debug("load_videos_by_tag (filtered) failed: %s" % error_text(e))
-
-		# 3. pokus (posledný fallback): bez filtra na publishedStatus
-		try:
-			ret = self.call_firestore_api(_query([tag_filter]))
+			ret = self.call_firestore_api_paged(fallback_query)
 			self.dump_json('videos-by-tag-' + tag_id, ret)
 			return ret
+		except LoginException:
+			raise
 		except Exception as e:
 			self.cp.log_error("load_videos_by_tag failed: %s" % error_text(e))
 			return []
@@ -704,7 +634,7 @@ class OktagonTVClient(object):
 			],
 			"limit": limit
 		}
-		ret = self.call_firestore_api(query, org_root=True)
+		ret = self.call_firestore_api_paged(query, org_root=True)
 		self.dump_json('tags-by-tagtype-' + tag_type_id, ret)
 		return ret
 
@@ -735,21 +665,12 @@ class OktagonTVClient(object):
 			ret = self.call_firestore_api(query)
 			self.dump_json('latest-videos', ret)
 			return ret
+		except LoginException:
+			raise
 		except Exception as e:
 			# ak Firestore nemá pre túto kombináciu index, vráti 400 - nie je to fatálne
 			self.cp.log_error("load_latest_videos failed: %s" % error_text(e))
 			return []
-
-	# ##################################################################################################################
-
-	def load_tag_types(self, limit=50):
-		# Diagnostika: zoznam typov tagov organizácie (aby sa dali dohľadať ďalšie sekcie).
-		query = {
-			"from": [{"collectionId": "tagTypes"}],
-			"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}],
-			"limit": limit
-		}
-		return self.call_firestore_api(query, org_root=True)
 
 	# ##################################################################################################################
 
@@ -777,11 +698,6 @@ class OktagonTVClient(object):
 		return ret
 
 	# ##################################################################################################################
-
-	def load_document_content(self, document_id):
-		ret = self.call_firestore_api(path="/contents/" + document_id)
-		self.dump_json('document-content', ret)
-		return ret
 
 	def load_document(self, document_path, org_root=False):
 		ret = self.call_firestore_api(path=document_path, org_root=org_root)
@@ -852,78 +768,33 @@ class OktagonTVClient(object):
 		result = self.call_tivio_api('getSourceUrl', data) or {}
 
 		# diagnostika: pri živých eventoch Tivio vracia rôzne zdroje, nech je v logu vidieť celú odpoveď
+		# (bez query stringu v URL - sessionId/pairingId do logu nepatria)
 		try:
-			self.cp.log_info("getSourceUrl(%s, %s, %s) -> %s" % (video_id, video_type, protocol or 'default', json.dumps(result)[:800]))
+			self.cp.log_debug("getSourceUrl(%s, %s, %s) -> %s" % (video_id, video_type, protocol or 'default', json.dumps(self._safe_source_info(result))[:800]))
 		except Exception:
 			pass
 
 		return result
 
-	def get_video_source_url(self, video_id, video_type='video', protocol=None):
-		return self.get_video_source_info(video_id, video_type, protocol)['url']
+	@staticmethod
+	def _safe_source_info(result):
+		# Kópia odpovede getSourceUrl vhodná do logu: z KAŽDEJ URL (aj vnorenej)
+		# sa odstráni query string a hodnoty kľúčov so session/pairing/token
+		# v názve sa zamaskujú. Predtým sa čistili len 'url' a 'sourceHistory',
+		# ale odpoveď nesie sessionId aj v ďalších poliach (test na prijímači).
+		def _clean(key, val):
+			if isinstance(val, dict):
+				return dict((k, _clean(k, v)) for k, v in val.items())
+			if isinstance(val, (list, tuple)):
+				return [_clean(key, v) for v in val]
+			k = (key or '').lower()
+			if any(x in k for x in ('session', 'pairing', 'token', 'signature')):
+				return '***'
+			if isinstance(val, (str, type(u''))) and val.startswith(('http://', 'https://')):
+				return safe_url(val)
+			return val
 
-	# ##################################################################################################################
-
-	def get_virtual_channel_epg(self, channel_ids, time_from, time_to):
-		if not isinstance(channel_ids, list):
-			channel_ids = [channel_ids]
-
-		if isinstance(time_from, datetime):
-			time_from = int(time_from.timestamp())
-		if isinstance(time_to, datetime):
-			time_to = int(time_to.timestamp())
-
-		data = {
-			"from": time_from,
-			"to": time_to,
-			"organizationId": self.ORGANIZATION_ID,
-			"tvChannelIds": channel_ids
-		}
-		response = self.req_session.post('https://api.tiv.io/epg', json=data)
-		return response.json().get('programs', [])
-
-	# ##################################################################################################################
-
-	def add_watch_position(self, duration, position, video_id, tag_id, episode, season):
-		data = {
-			"position": position,
-			"videoPath": "videos/" + video_id,
-			"videoDuration": duration,
-			"profileId": self.login_data['profile_id']
-		}
-		if tag_id:
-			data['tagPath'] = self.ORG_PATH.lstrip('/') + "/tags/" + tag_id
-		if episode:
-			data.update({"episodeNumber": episode, "seasonNumber": season})
-
-		if position == 0 or duration == position:
-			if video_id in self.watch_positions:
-				del self.watch_positions[video_id]
-		else:
-			self.watch_positions[video_id] = position
-
-		self.call_tivio_api('addWatchPosition', data)
-
-	# ##################################################################################################################
-
-	def update_fav(self, cmd, item_type, item_id):
-		if item_type == 'tag':
-			document_path = self.ORG_PATH.lstrip('/') + "/tags/{}".format(item_id)
-		elif item_type == 'video':
-			document_path = "videos/{}".format(item_id)
-
-		data = {
-			"action": cmd,
-			"contentDocumentPath": document_path,
-			"profileId": self.login_data['profile_id']
-		}
-		if cmd == 'add':
-			self.favourites[item_type][item_id] = True
-		elif cmd == 'remove':
-			if item_id in self.favourites[item_type]:
-				del self.favourites[item_type][item_id]
-
-		self.call_tivio_api('updateFavorites', data)
+		return _clean('', result)
 
 	# ##################################################################################################################
 
@@ -933,53 +804,11 @@ class OktagonTVClient(object):
 			with open(file_name, 'w') as f:
 				json.dump(data, f)
 
-	# ##################################################################################################################
-
-	def load_genres(self):
-		query = {
-			"from": [{"collectionId": "tags"}],
-			"where": {"fieldFilter": {"field": {"fieldPath": "type"}, "op": "EQUAL", "value": {"stringValue": "genre"}}},
-			"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}]
-		}
-		return self.call_firestore_api(query, org_root=True)
-
-	# ##################################################################################################################
-
-	def search(self, keyword, search_videos=False, page=0):
-		# TODO(oktagon): vyhľadávací endpoint zatiaľ nebol odchytený v HAR.
-		# OKTAGON má pravdepodobne vlastný search pod api.oktagonmma.com - doplniť po odchytení.
-		self.cp.log_info("Search not implemented yet for OKTAGON")
-		return []
-
-	# ##################################################################################################################
-
-	def get_videos_by_url(self, url_part):
-		query = {
-			"from": [{"collectionId": "videos"}],
-			"where": {"fieldFilter": {"field": {"fieldPath": "urlName.sk"}, "op": "ARRAY_CONTAINS", "value": {"stringValue": url_part}}},
-			"orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}],
-			"limit": 2
-		}
-		ret = self.call_firestore_api(query)
-		self.dump_json('videos-by-url-' + url_part, ret)
-		return ret
-
 # ##################################################################################################################
 # Vysokoúrovňový klient - spracuje dáta z OktagonTVClient do podoby pre frontend (provider).
 # ##################################################################################################################
 
 class OktagonTV(object):
-	# --- TODO(oktagon): Tivio application ID OKTAGON.tv ------------------------------------------
-	# Používa sa na načítanie zoznamu obrazoviek aplikácie (/applications/<APPLICATION_ID>).
-	APPLICATION_ID = 'TODO_TIVIO_APPLICATION_ID'
-
-	# --- TODO(oktagon): mapovanie logických názvov na reálne row ID (napr. live TV) --------------
-	# Zisti z getRowsInScreen3 / štruktúry aplikácie. Ak OKTAGON nemá klasické live TV kanály,
-	# tento riadok môžeš vynechať a v provideri nepridávať "Live TV".
-	ROW_ID_MAPPING = {
-		# 'livetv': 'row-XXXXXXXXXXXXXXXXXXXX',
-	}
-
 	def __init__(self, content_provider):
 		self.page_limit = 30
 		self.langs = ['sk', 'cs', 'en']
@@ -1009,13 +838,16 @@ class OktagonTV(object):
 		# 1 = voľné, 0 = treba predplatné/PPV, 2 = kúpené (má nárok)
 		ret = 1
 		for m in item.get('monetizations', []):
-			if m.get('type') == 'transaction':
-				ret = 0
-			elif m.get('type') == 'subscription':
-				ret = 0
-				mon_id = m.get('id') or m.get('monetizationRef', '').split('/')[-1]
-				if mon_id in self.client.purchases:
-					return 2
+			mon_type = m.get('type')
+			if mon_type not in ('transaction', 'subscription'):
+				continue
+
+			# kúpené PPV (transaction) aj aktívne predplatné (subscription) sú v purchases
+			mon_id = m.get('id') or m.get('monetizationRef', '').split('/')[-1]
+			if mon_id and mon_id in self.client.purchases:
+				return 2
+
+			ret = 0
 		return ret
 
 	# ##################################################################################################################
@@ -1072,31 +904,6 @@ class OktagonTV(object):
 
 	# ##################################################################################################################
 
-	def _add_tag_item(self, item):
-		if not item:
-			return
-
-		is_series = False
-		seasons = []
-		if item.get('type') == 'series':
-			is_series = True
-
-		for x in item.get('metadata', []):
-			if x.get("key") == 'availableSeasons':
-				seasons = [s['seasonNumber'] for s in x['value']]
-				is_series = True
-
-		return {
-			'title': self.get_lang_label(item.get('name', {})),
-			'plot': self.get_lang_label(item.get('description', {})),
-			'img': self.get_img(item),
-			'type': 'series' if is_series else 'video',
-			'id': item['__name'].split('/')[-1],
-			'seasons': seasons
-		}
-
-	# ##################################################################################################################
-
 	def _add_banner_item(self, item):
 		if item.get('itemType') == 'VIDEO':
 			item_type = 'video'
@@ -1128,21 +935,6 @@ class OktagonTV(object):
 				ret.append(x)
 		return ret
 
-	def _add_tag(self, item):
-		return {
-			'title': self.get_lang_label(item.get('name', {})),
-			'plot': self.get_lang_label(item.get('description', {})),
-			'img': self.get_img(item),
-			'type': 'tag',
-			'id': item['__name'].split('/')[-1],
-		}
-
-	def _add_favourites(self, item):
-		return {'title': self.get_lang_label(item.get('name', {})), 'type': 'fav'}
-
-	def _add_continue_watch(self, item):
-		return {'title': self.get_lang_label(item.get('name', {})), 'type': 'watchlist'}
-
 	# ##################################################################################################################
 
 	def get_screen_items(self, screen_id, page=0, ref=False):
@@ -1156,11 +948,9 @@ class OktagonTV(object):
 			row_type = item.get('rowComponent')
 			if row_type == 'ROW':
 				subtype = item.get('type')
-				if subtype == 'favourites':
-					ret.append(self._add_favourites(item))
-				elif subtype == 'continueToWatch':
-					if self.cp.get_setting("sync_playback"):
-						ret.append(self._add_continue_watch(item))
+				if subtype in ('favourites', 'continueToWatch'):
+					# obľúbené / pokračovať v sledovaní doplnok nepodporuje - riadok sa preskočí
+					continue
 				elif item.get('itemComponent') != 'ROW_ITEM_HIGHLIGHTED':
 					ret.append(self._add_row(item))
 			elif row_type == 'BANNER':
@@ -1178,14 +968,6 @@ class OktagonTV(object):
 		else:
 			self.cp.log_info("OKTAGON screen %s: %d items" % (screen_id, len(ret)))
 
-		return ret
-
-	# ##################################################################################################################
-
-	def get_item_details(self, item_type, item_id):
-		org_root = item_type == 'tag'
-		ret = self.client.load_document('/{}s/{}'.format(item_type, item_id), org_root=org_root)
-		self.client.dump_json('document-%s-%s' % (item_type, item_id), ret)
 		return ret
 
 	# ##################################################################################################################
@@ -1232,7 +1014,6 @@ class OktagonTV(object):
 	# ##################################################################################################################
 
 	def get_row_items(self, row_id, page=0):
-		row_id = self.ROW_ID_MAPPING.get(row_id, row_id)
 		row_data = self.client.get_row_tiles(row_id, page * self.page_limit, self.page_limit)
 
 		ret = []
@@ -1249,19 +1030,6 @@ class OktagonTV(object):
 
 		if (row_data or {}).get('nextPageParams'):
 			ret.append({'type': 'next'})
-		return ret
-
-	# ##################################################################################################################
-
-	def get_serie_videos(self, tag_id, season=None):
-		ret = []
-		for item in self.client.load_videos_for_tag(tag_id, season):
-			ret.append(self._add_video_item(item, tag_id))
-		return ret
-
-	def get_tag_data(self, tag_id):
-		ret = self.client.load_tags_by_ref(self.client.TAGS_ROOT + tag_id)
-		self.client.dump_json('tag-' + str(tag_id), ret)
 		return ret
 
 	# ##################################################################################################################
@@ -1345,94 +1113,10 @@ class OktagonTV(object):
 	def get_video_source_info(self, video_id, video_type='video', protocol=None):
 		return self.client.get_video_source_info(video_id, video_type, protocol)
 
-	def get_video_source_url(self, video_id, video_type='video', protocol=None):
-		return self.client.get_video_source_url(video_id, video_type, protocol)
-
 	def get_document(self, path, org_root=False):
 		ret = self.client.load_document(path, org_root)
 		self.client.dump_json('document-' + path.replace('/', '_'), ret)
 		return ret
-
-	# ##################################################################################################################
-
-	def get_root_screens(self):
-		is_kid = self.get_current_profile().get('kid')
-		document = self.get_document('/applications/' + self.APPLICATION_ID, True)
-
-		ret = []
-		for screen in document.get('applicationScreens', []):
-			if is_kid:
-				if not screen.get('showForUserProfileType', {}).get('kids'):
-					continue
-			else:
-				if not screen.get('showForUserProfileType', {}).get('adults'):
-					continue
-
-			ret.append({
-				'title': self.get_lang_label(screen['name']),
-				'id': screen['screenRef'].split('/')[-1]
-			})
-		return ret
-
-	# ##################################################################################################################
-
-	def get_channel_current_epg(self, channel_id):
-		cur_time = int(time())
-		epg_list = self.client.load_tvchannel_ref(self.client.DOCUMENTS_ROOT + '/tvChannels/' + channel_id)
-
-		for epg in epg_list:
-			if cur_time > iso8601_to_timestamp(epg['from']) and cur_time < iso8601_to_timestamp(epg['to']):
-				return {
-					'from': iso8601_to_timestamp(epg['from']),
-					'to': iso8601_to_timestamp(epg['to']),
-					'plot': self.get_lang_label(epg.get('description', '')),
-					'title': self.get_lang_label(epg.get('name', '')),
-				}
-		else:
-			return {}
-
-	# ##################################################################################################################
-
-	def get_virtual_channel_current_epg(self, channel_id):
-		cur_time = int(time())
-		time_from = cur_time - (cur_time % (4 * 3600))
-		time_to = time_from + (4 * 3600)
-
-		epg_list = self.client.get_virtual_channel_epg(channel_id, time_from, time_to).get(channel_id, [])
-		for epg in epg_list:
-			if epg['from'] < cur_time and epg['to'] > cur_time:
-				return {
-					'from': epg['from'],
-					'to': epg['to'],
-					'plot': self.get_lang_label(epg.get('video', {}).get('description', '')),
-					'title': self.get_lang_label(epg.get('video', {}).get('name', '')),
-					'video_id': epg['videoId']
-				}
-		return {}
-
-	# ##################################################################################################################
-
-	def get_profiles(self):
-		self.login()
-		return [{'name': x['name'], 'id': x['id'], 'kid': x.get('survey', {}).get('age', {}).get('kidsOnly') == True, 'active': x['id'] == self.client.login_data.get('profile_id')} for x in self.client.user_info.get('profiles', [])]
-
-	def set_current_profile(self, profile_id):
-		self.client.login_data['profile_id'] = profile_id
-		self.client.save_login_data()
-
-	def get_current_profile(self):
-		cur_profile_id = self.client.login_data.get('profile_id')
-		for p in self.get_profiles():
-			if p['id'] == cur_profile_id:
-				return p
-		return {}
-
-	# ##################################################################################################################
-
-	def get_genres(self):
-		genres = self.client.load_genres()
-		self.client.dump_json('genres', genres)
-		return [self._add_tag(item) for item in genres]
 
 	# ##################################################################################################################
 
@@ -1461,18 +1145,24 @@ class OktagonTV(object):
 		# turnaje (OKTAGON 92, 91, ...)
 		try:
 			add_tags(self.get_tournaments())
+		except LoginException:
+			raise
 		except Exception as e:
 			self.cp.log_error("search tournaments failed: %s" % error_text(e))
 
 		# relácie / pořady
 		try:
 			add_tags(self.get_shows())
+		except LoginException:
+			raise
 		except Exception as e:
 			self.cp.log_error("search shows failed: %s" % error_text(e))
 
 		# ostatné tagy organizácie - hlavne mená bojovníkov
 		try:
 			add_tags(self._tags_to_items(self.client.load_org_tags(limit=tag_limit)))
+		except LoginException:
+			raise
 		except Exception as e:
 			self.cp.log_error("search tags failed: %s" % error_text(e))
 
@@ -1482,57 +1172,10 @@ class OktagonTV(object):
 			for it in self.get_latest_videos(video_limit):
 				if it.get('title') and kw in norm_text(it['title']):
 					videos.append(it)
+		except LoginException:
+			raise
 		except Exception as e:
 			self.cp.log_error("search videos failed: %s" % error_text(e))
 
 		self.cp.log_info("OKTAGON search '%s': %d tags, %d videos" % (keyword, len(tags), len(videos)))
 		return {'tags': tags, 'videos': videos}
-
-	# ##################################################################################################################
-
-	def add_favourite(self, item_type, item_id):
-		return self.client.update_fav('add', item_type, item_id)
-
-	def remove_favourite(self, item_type, item_id):
-		return self.client.update_fav('remove', item_type, item_id)
-
-	def is_favourite(self, item_type, item_id):
-		return self.client.favourites.get(item_type, {}).get(item_id, False)
-
-	def get_favourites(self, item_type):
-		ret = []
-		for item_id in list(self.client.favourites.get(item_type, {}).keys()):
-			item = self.get_item_details(item_type, item_id)
-			if item_type == 'tag':
-				ret.append(self._add_tag(item))
-			elif item_type == 'video':
-				ret.append(self._add_video_item(item))
-		return ret
-
-	# ##################################################################################################################
-
-	def add_watch_position(self, duration, position, video_id, tag_id, episode, season):
-		if not self.cp.get_setting("sync_playback"):
-			return
-		return self.client.add_watch_position(duration, position, video_id, tag_id, episode, season)
-
-	def get_watchlist(self):
-		self.client.refresh_user_data()
-		ret = []
-		for witem in self.client.user_info.get('watchHistory', []):
-			if not witem.get('videoRef'):
-				continue
-			if witem.get('profileId') != self.client.login_data.get('profile_id'):
-				continue
-			position = witem.get('position', 0)
-			if position == 0 or position == witem.get('duration'):
-				continue
-			item = self.get_item_details('video', witem['videoRef'].split('/')[-1])
-			series_tag_id = witem.get('tagRef', '').split('/')[-1] or None
-			ret.append(self._add_video_item(item, series_tag_id))
-		return ret
-
-	def get_play_pos(self, video_id):
-		if not self.cp.get_setting("sync_playback"):
-			return 0
-		return int(self.client.watch_positions.get(video_id, 0) // 1000)

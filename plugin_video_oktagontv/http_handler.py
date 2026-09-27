@@ -8,7 +8,7 @@ from tools_archivczsk.http_handler.dash import DashHTTPRequestHandler
 #
 # Ak sú live/PPV streamy chránené Widevine DRM, treba zapnúť interné dešifrovanie:
 #   self.dash_internal_decrypt = True
-# a v oktagontv.py v get_video_source_url() žiadať {"encryption":"widevine"} + načítať
+# a v oktagontv.py v get_video_source_info() žiadať {"encryption":"widevine"} + načítať
 # licenčnú URL. DRM podporuje tools_cenc (wvl3 CDM). Zatiaľ predpokladáme čisté streamy.
 # #################################################################################################
 

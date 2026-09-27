@@ -6,9 +6,9 @@
 # Každá položka nesie videoSourceType="TIVIO" a videoSource=<Tivio video id>, ktoré sa
 # potom prehráva cez Tivio getSourceUrl (viď oktagontv.py).
 #
-# POZOR: v HAR bola odchytená len domovská stránka -> endpoint /banners. Pre plnú navigáciu
-# (Turnaje / Zápasy / Pořady, detail eventu, zoznam zápasov) treba odchytiť ďalšie endpointy
-# (miesta označené TODO(oktagon-nav)).
+# Z tohto API sa používa len endpoint /banners (živé prenosy, záznamy, balíčky). Navigácia
+# Turnaje / Zápasy / Pořady a zoznam zápasov v evente idú priamo cez Tivio (Firestore a
+# cloud funkcie) - viď oktagontv.py.
 
 LANGS = ['sk', 'cs', 'en']
 
@@ -73,7 +73,7 @@ class OktagonApi(object):
 	# ##################################################################################################################
 
 	def get_banners(self, types=None, promoted=None, lang='sk'):
-		# types: zoznam z ['STREAM','VIDEO','BUNDLE']; promoted: True/False/None
+		# types: zoznam z ['STREAM','VIDEO','BUNDLE','PASS']; promoted: True/False/None
 		params = []
 		for i, t in enumerate(types or []):
 			params.append(('types[%d]' % i, t))
@@ -85,15 +85,3 @@ class OktagonApi(object):
 
 		data = self._get('/banners', params=params)
 		return [self._parse_item(x) for x in data]
-
-	# ##################################################################################################################
-
-	def get_banner(self, slug):
-		return self._parse_item(self._get('/banners/' + slug))
-
-	# ##################################################################################################################
-	# TODO(oktagon-nav): doplniť endpointy pre plnú navigáciu po odchytení druhého HAR:
-	#   - zoznam všetkých turnajov/eventov (Turnaje)
-	#   - zoznam zápasov v evente (Zápasy) - pravdepodobne cez eventId / eventTagId
-	#   - relácie/pořady (Pořady)
-	#   - vyhľadávanie

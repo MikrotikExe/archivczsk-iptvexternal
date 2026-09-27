@@ -1,3 +1,26 @@
+1.0.1: opravy z auditu kódu (27.9.2026)
+- zápasy v turnaji: záložný dopyt do Firestore sa použije len keď prvý dopyt zlyhá
+  (chýbajúci index / HTTP 400), nie keď turnaj legitímne nemá žiadne videá; záložný
+  dopyt filtruje len publikované videá (tretí pokus bez filtra je preč)
+- turnaje a zápasy sa načítavajú po stránkach (offset, max. 20 x 100) - predtým sa
+  zoznam nad 100 položiek ticho orezal
+- kúpené PPV (typ transaction) sa teraz berie ako prehrateľné - položka už nemá
+  značku " *", rovnako ako pri aktívnom predplatnom
+- balíčky / PPV: z katalógu sa žiadajú typy BUNDLE aj PASS
+- obmedzenie dátového toku (max_bitrate): ak filter vyradí všetky kvality, ponúkne
+  sa aspoň najnižšia namiesto hlášky "stream nie je dostupný"
+- prihlásenie: pri neúspešnej obnove tokenu alebo zmene hesla ostáva zachované
+  device_id (posiela sa do getSourceUrl), token sa obnovuje so 60 s rezervou
+- LoginException sa už nepohltí vo všeobecných except blokoch - framework sa môže
+  znova prihlásiť a zobraziť správnu hlášku
+- Python 2: bezpečné spájanie preložených textov (bytes) s unicode názvami, pomlčka
+  v názve série, dekódovanie textu výnimky
+- log: odpoveď getSourceUrl ide do debug úrovne, z každej logovanej URL (aj vnorenej)
+  sa odstraňuje query string a polia so sessionId / pairingId / tokenom sa maskujú
+- odstránený nepoužívaný kód zdedený z JOJ Play (obľúbené, pozície sledovania,
+  profily, EPG kanálov, žánre, obrazovky) a zastarané TODO komentáre; z prekladov
+  vyhodené nepoužité texty
+
 1.0.0: prvé stabilné vydanie
 - katalóg: živé prenosy, zápasy, turnaje (zoskupené do sérií), relácie, záznamy,
   balíčky/PPV a vyhľadávanie

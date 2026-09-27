@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from tools_archivczsk.contentprovider.provider import CommonContentProvider
+from tools_archivczsk.contentprovider.exception import LoginException
 from tools_archivczsk.string_utils import _I, clean_html
 from tools_archivczsk.http_handler.hls import stream_key_to_hls_url
 from tools_archivczsk.http_handler.dash import stream_key_to_dash_url
@@ -7,7 +8,7 @@ from tools_archivczsk.http_handler.dash import stream_key_to_dash_url
 import re
 from time import time, strftime, localtime
 from tools_archivczsk.date_utils import iso8601_to_timestamp
-from .oktagontv import OktagonTV, error_text
+from .oktagontv import OktagonTV, error_text, to_text, safe_url
 from .oktagon_api import OktagonApi
 
 
@@ -43,6 +44,8 @@ class OktagonTVContentProvider(CommonContentProvider):
 	def search(self, keyword, search_id=None):
 		try:
 			result = self.oktagontv.search(keyword)
+		except LoginException:
+			raise
 		except Exception as e:
 			self.log_error("OKTAGON search error: %s" % error_text(e))
 			self.show_error(self._("Failed to load catalog from OKTAGON."))
@@ -66,24 +69,11 @@ class OktagonTVContentProvider(CommonContentProvider):
 	# Obrazovky a riadky Tivia (rovnaká štruktúra, akú zobrazuje web)
 	# ##################################################################################################################
 
-	def list_screen(self, screen_id, page=0):
-		try:
-			items = self.oktagontv.get_screen_items(screen_id, page)
-		except Exception as e:
-			self.log_error("OKTAGON screen %s error: %s" % (screen_id, error_text(e)))
-			# záloha: ak Tivio cloud funkcia nie je dostupná, ponúkni aspoň turnaje
-			if screen_id == self.oktagontv.client.SCREEN_FIGHTS:
-				return self.list_tournaments()
-			self.show_error(self._("Failed to load catalog from OKTAGON."))
-			return
-
-		self.add_items(items, cmd_next=self.list_screen, next_args={'screen_id': screen_id, 'page': page + 1})
-
-	# ##################################################################################################################
-
 	def list_row(self, row_id, page=0):
 		try:
 			items = self.oktagontv.get_row_items(row_id, page)
+		except LoginException:
+			raise
 		except Exception as e:
 			self.log_error("OKTAGON row %s error: %s" % (row_id, error_text(e)))
 			self.show_error(self._("Failed to load catalog from OKTAGON."))
@@ -111,8 +101,8 @@ class OktagonTVContentProvider(CommonContentProvider):
 			elif itype == 'next':
 				if cmd_next:
 					self.add_next(cmd_next, **(next_args or {}))
-			elif itype in ('fav', 'watchlist', 'tvChannel'):
-				# nepodporované sekcie (obľúbené / pokračovať v sledovaní / live TV kanály)
+			elif itype == 'tvChannel':
+				# nepodporovaná položka (live TV kanály OKTAGON nemá)
 				continue
 			else:
 				self.log_error("Unsupported OKTAGON item type: %s" % itype)
@@ -132,6 +122,8 @@ class OktagonTVContentProvider(CommonContentProvider):
 				if it.get('type') == 'row':
 					self.add_dir(it['title'], cmd=self.list_row, row_id=it['id'])
 					rows += 1
+		except LoginException:
+			raise
 		except Exception as e:
 			self.log_error("OKTAGON fights screen error: %s" % error_text(e))
 
@@ -160,6 +152,8 @@ class OktagonTVContentProvider(CommonContentProvider):
 	def _tournament_items(self):
 		try:
 			return self.oktagontv.get_tournaments() or []
+		except LoginException:
+			raise
 		except Exception as e:
 			self.log_error("OKTAGON tournaments error: %s" % error_text(e))
 			return []
@@ -215,6 +209,8 @@ class OktagonTVContentProvider(CommonContentProvider):
 	def list_events(self):
 		try:
 			items = self.api.get_banners(types=['STREAM'])
+		except LoginException:
+			raise
 		except Exception as e:
 			self.log_error("OKTAGON events error: %s" % error_text(e))
 			self.show_error(self._("Failed to load catalog from OKTAGON."))
@@ -248,6 +244,8 @@ class OktagonTVContentProvider(CommonContentProvider):
 	def list_shows(self):
 		try:
 			shows = self.oktagontv.get_shows()
+		except LoginException:
+			raise
 		except Exception as e:
 			self.log_error("OKTAGON shows error: %s" % error_text(e))
 			self.show_error(self._("Failed to load catalog from OKTAGON."))
@@ -286,10 +284,12 @@ class OktagonTVContentProvider(CommonContentProvider):
 	# ##################################################################################################################
 
 	def list_catalog(self, kind):
-		# BUNDLE/PASS berieme spolu ako balíčky
-		types = ['BUNDLE'] if kind == 'BUNDLE' else [kind]
+		# BUNDLE/PASS berieme spolu ako balíčky (oba typy vracia /banners, viď oktagon_api.py)
+		types = ['BUNDLE', 'PASS'] if kind == 'BUNDLE' else [kind]
 		try:
 			items = self.api.get_banners(types=types)
+		except LoginException:
+			raise
 		except Exception as e:
 			self.log_error("OKTAGON catalog error: %s" % error_text(e))
 			self.show_error(self._("Failed to load catalog from OKTAGON."))
@@ -307,7 +307,7 @@ class OktagonTVContentProvider(CommonContentProvider):
 	def add_catalog_item(self, it):
 		title = it['title']
 		if it.get('subtitle'):
-			title += '  {}'.format(_I(it['subtitle']))
+			title = title + '  ' + _I(it['subtitle'])
 
 		info_labels = {
 			'plot': _strip_html(it.get('plot') or ''),
@@ -342,7 +342,7 @@ class OktagonTVContentProvider(CommonContentProvider):
 			return
 
 		if vst != 'TIVIO':
-			self.show_error(self._("Unsupported video source: %s") % vst)
+			self.show_error(to_text(self._("Unsupported video source: %s")) % to_text(vst))
 			return
 
 		# Živý prenos pred svojím začiatkom na Tivio CDN ešte neexistuje - manifest vráti HTTP 500.
@@ -352,8 +352,8 @@ class OktagonTVContentProvider(CommonContentProvider):
 			self.show_info(self._("The broadcast hasn't started yet. It starts at %s.") % strftime('%d.%m.%Y %H:%M', localtime(start_ts)), noexit=True)
 			return
 
-		# STREAM = živý event, VIDEO = záznam. Tivio documentType:
-		# TODO(oktagon): over presný typ z getSourceUrl (video vs tvChannel vs event).
+		# STREAM = živý event, VIDEO = záznam. Tivio documentType je v oboch prípadoch "video"
+		# (overené na živom prenose 1.8.2026 aj na záznamoch).
 		video_type = 'video'
 		live = item.get('type') == 'STREAM'
 
@@ -370,6 +370,8 @@ class OktagonTVContentProvider(CommonContentProvider):
 		for attempt in range(attempts):
 			try:
 				info = self.oktagontv.get_video_source_info(video_source, video_type, protocol) or {}
+			except LoginException:
+				raise
 			except Exception as e:
 				msg = error_text(e)
 				self.log_error("getSourceUrl failed: %s" % msg)
@@ -378,7 +380,7 @@ class OktagonTVContentProvider(CommonContentProvider):
 				return
 
 			url = info.get('url')
-			self.log_info("OKTAGON stream URL (%d/%d): %s" % (attempt + 1, attempts, url))
+			self.log_info("OKTAGON stream URL (%d/%d): %s" % (attempt + 1, attempts, safe_url(url)))
 
 			if not url or url in tried:
 				# ten istý zdroj, ktorý pred chvíľou nefungoval - netreba znova
@@ -422,7 +424,7 @@ class OktagonTVContentProvider(CommonContentProvider):
 			return False
 
 		if status != 200:
-			self.log_error("Manifest not available (HTTP %d): %s" % (status, url))
+			self.log_error("Manifest not available (HTTP %d): %s" % (status, safe_url(url)))
 			return False
 
 		return True
@@ -438,14 +440,14 @@ class OktagonTVContentProvider(CommonContentProvider):
 			self.log_error("Failed to load stream manifest: %s" % error_text(e))
 
 		# 2) priamo manifest - keby proxy zlyhala, nech je stále čo prehrať
-		self.add_play('%s  %s' % (title, self._("(direct stream)")), url,
+		self.add_play(to_text(title) + u'  ' + to_text(self._("(direct stream)")), url,
 		              info_labels={'quality': 'auto'}, live=True)
 
 		# sourceHistory (ten istý stream bez sessionId) sa do zoznamu nedáva:
 		# master playlist síce vráti HTTP 200, ale segmenty už bez session CDN odmietne
 		# a prehrávač skončí okamžite na EOF (overené na živom prenose 1.8.2026).
 		for source_url in source_history or []:
-			self.log_debug("Ignoring session-less live source (segments return 401): %s" % source_url)
+			self.log_debug("Ignoring session-less live source (segments return 401): %s" % safe_url(source_url))
 
 		self.log_info("Live streams added, proxy variants: %s" % ('yes' if proxy_ok else 'no'))
 		return True
@@ -465,7 +467,7 @@ class OktagonTVContentProvider(CommonContentProvider):
 			return False
 
 		if '.m3u8' in manifest_url:
-			streams = self.get_hls_streams(manifest_url, self.oktagontv.client.req_session, max_bitrate=self.get_setting('max_bitrate'))
+			streams = self._get_streams(self.get_hls_streams, manifest_url)
 			if not streams:
 				return False
 			for s in streams:
@@ -476,7 +478,7 @@ class OktagonTVContentProvider(CommonContentProvider):
 					info_labels['quality'] = height + 'p'
 				self.add_play(title, url, info_labels=info_labels, live=live)
 		else:
-			streams = self.get_dash_streams(manifest_url, self.oktagontv.client.req_session, max_bitrate=self.get_setting('max_bitrate'))
+			streams = self._get_streams(self.get_dash_streams, manifest_url)
 			if not streams:
 				return False
 
@@ -486,6 +488,24 @@ class OktagonTVContentProvider(CommonContentProvider):
 				self.add_play(title, url, info_labels=info_labels, live=live)
 
 		return True
+
+	# ##################################################################################################################
+
+	def _get_streams(self, get_streams, manifest_url):
+		# Varianty z manifestu obmedzené nastavením max_bitrate. Ak filter vyradí všetky
+		# (napr. limit 2 Mbit/s a najnižšia kvalita má viac), vráti sa aspoň najnižšia
+		# varianta - inak by prehrávanie skončilo hláškou "stream nie je dostupný".
+		max_bitrate = self.get_setting('max_bitrate')
+		streams = get_streams(manifest_url, self.oktagontv.client.req_session, max_bitrate=max_bitrate)
+
+		if not streams and max_bitrate and int(max_bitrate) > 0:
+			streams = get_streams(manifest_url, self.oktagontv.client.req_session)
+			if streams:
+				# zoznam je zoradený od najvyššieho bitrate -> posledná je najnižšia
+				streams = streams[-1:]
+				self.log_info("No stream variant under %s Mbit/s - falling back to the lowest one (%s bps)" % (max_bitrate, streams[0].get('bandwidth')))
+
+		return streams
 
 
 # ##################################################################################################################
@@ -523,7 +543,7 @@ def _series_name(title):
 	# názov série = časť názvu pred prvým číslom ("OKTAGON 45: Štvanice" -> "OKTAGON")
 	title = (title or '').strip()
 	name = re.split(r'\d', title, 1)[0]
-	name = name.strip(' :-–,.')
+	name = name.strip(u' :-\u2013,.')  # aj pomlčka (en dash) - unicode literál kvôli py2
 	return name or title
 
 
