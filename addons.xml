@@ -2,6 +2,6 @@
 <addons>
 <addon id="plugin.video.e2m3u2bouquet" name="E2m3u2bouquet" version="1.0.0" hash="a7e6ae037162ba17a79e56f7f043ee3d" rhash="49bd0c2e89768cdbf17fd495ea8dcbec" />
 <addon id="plugin.video.oktagontv" name="OKTAGON.tv" version="1.0.1" hash="3f75d4171ab7e477259096d5c66c117e" rhash="fcee0d2861b10de267992b449e7f4e7f" />
-<addon id="plugin.video.playlive" name="PlayLive.net" version="1.0.0" hash="e5c15cf7bee017ee909346e430369072" rhash="76de1098f08c01b901de1000f5a79986" />
+<addon id="plugin.video.playlive" name="PlayLive.net" version="1.0.0" hash="e7e915fe4ec5a5e531eee12a874763b4" rhash="67789382f603768db73e2fe9da89a2a8" />
 <addon id="plugin.video.tvheadend" name="Tvheadend" version="1.0.2" hash="419b328d8cbd425b6d0a92e69801f6be" rhash="0683877ab9c1540d440b292d43542331" />
 </addons>
