@@ -4,9 +4,8 @@ from tools_archivczsk.http_handler.hls import HlsHTTPRequestHandler
 from tools_archivczsk.http_handler.dash import DashHTTPRequestHandler
 
 # #################################################################################################
-# HTTP handler pre PlayLive - HLS pre upútavky, DASH+DRM pre platené prenosy.
-# DRM: BuyDRM/KeyOS (Widevine) cez proxy api.playlive.net/drmlaproxy/getLicense
-# Licenčné požiadavky vyžadujú privacy mode (najprv service certificate, potom šifrovaný request).
+# HTTP handler pre PlayLive - HLS pre upútavky, DASH pre platené prenosy.
+# Licenčné požiadavky idú cez proxy api.playlive.net (vyžadujú privacy mode).
 # #################################################################################################
 
 
@@ -21,7 +20,7 @@ class PlayLiveHTTPRequestHandler(HlsHTTPRequestHandler, DashHTTPRequestHandler):
 	# #################################################################################################
 
 	def get_drm_license(self, drm_info, lic_request):
-		"""Override pre PlayLive DRM proxy - pridáva _sessid do URL a správne hlavičky."""
+		"""Override pre PlayLive licenčný proxy - pridáva _sessid do URL a správne hlavičky."""
 		session = self.cp.get_requests_session()
 
 		license_url = drm_info.get('license_url', '')
@@ -32,7 +31,7 @@ class PlayLiveHTTPRequestHandler(HlsHTTPRequestHandler, DashHTTPRequestHandler):
 			license_url = license_url + ('&' if '?' in license_url else '?') + '_sessid=' + sessid
 
 		headers = dict(drm_info.get('headers', {}))
-		# BuyDRM/KeyOS proxy vyžaduje tieto hlavičky
+		# licenčný proxy vyžaduje tieto hlavičky
 		headers.setdefault('Content-Type', 'application/octet-stream')
 		headers.setdefault('Origin', 'https://playlive.net')
 		headers.setdefault('Referer', 'https://playlive.net/')
@@ -44,9 +43,9 @@ class PlayLiveHTTPRequestHandler(HlsHTTPRequestHandler, DashHTTPRequestHandler):
 				content = response.content
 			else:
 				# zámerne bez URL - obsahuje _sessid a logy sa posielajú pri hlásení chýb
-				self.cp.log_error("Failed to get DRM license from PlayLive: HTTP %d" % response.status_code)
+				self.cp.log_error("Failed to get license from PlayLive: HTTP %d" % response.status_code)
 		except Exception as e:
-			self.cp.log_error("Failed to get DRM license from PlayLive: %s" % type(e).__name__)
+			self.cp.log_error("Failed to get license from PlayLive: %s" % type(e).__name__)
 
 		session.close()
 		return content

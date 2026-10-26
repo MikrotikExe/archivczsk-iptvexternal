@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plugin_video_playlive\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 22:36+0100\n"
+"POT-Creation-Date: 2026-10-26 22:44+0100\n"
 "PO-Revision-Date: 2026-10-26 22:40+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -180,8 +180,8 @@ msgid "Product ID: %s"
 msgstr "ID produktu: %s"
 
 #: plugin_video_playlive/provider.py:357
-msgid "PlayLive broadcasts are encrypted (DRM). To play one here, sign in using \"Sign in with a code\" in the menu and buy the broadcast on playlive.net. Trailers play without signing in."
-msgstr "Přenosy PlayLive jsou šifrované (DRM). Pro přehrávání se přihlas přes „Přihlásit se kódem\" v menu a přenos si kup na playlive.net. Upoutávky jdou bez přihlášení."
+msgid "PlayLive broadcasts are paid. To play one here, sign in using \"Sign in with a code\" in the menu and buy the broadcast on playlive.net. Trailers play without signing in."
+msgstr "Přenosy PlayLive jsou placené. Pro přehrávání se přihlas přes „Přihlásit se kódem\" v menu a přenos si kup na playlive.net. Upoutávky jdou bez přihlášení."
 
 #: plugin_video_playlive/provider.py:371
 msgid "Failed to load the trailer."
@@ -200,8 +200,8 @@ msgid "No stream URL received from server."
 msgstr "Ze serveru nepřišla URL streamu."
 
 #: plugin_video_playlive/provider.py:477
-msgid "No DRM license URL received. The stream cannot be played."
-msgstr "Nepřišla DRM licenční URL. Stream nelze přehrát."
+msgid "No license URL received. The stream cannot be played."
+msgstr "Nepřišla licenční URL. Stream nelze přehrát."
 
 #: plugin_video_playlive/provider.py:484
 msgid "Failed to load the DASH stream."

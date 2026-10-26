@@ -3,10 +3,10 @@
 # PlayLive.net pre ArchivCZSK.
 #
 # Katalóg (offer.json) je verejný, takže prehliadanie ponuky funguje bez prihlásenia.
-# Platené prenosy sú chránené DRM (BuyDRM/KeyOS - Widevine). Pre ich prehrávanie
+# Pre prehrávanie platených prenosov
 # je potrebné prihlásenie cez kód (Smart TV device flow) - na playlive.net/logcode
 # sa vygeneruje 6-miestny kód, ktorý sa zadá v addone. Bez captchy.
-# Upútavky sú dostupné bez prihlásenia (HLS bez DRM).
+# Upútavky sú dostupné bez prihlásenia (HLS).
 
 from tools_archivczsk.contentprovider.provider import CommonContentProvider
 from tools_archivczsk.string_utils import _I, clean_html
@@ -298,7 +298,7 @@ class PlayLiveContentProvider(CommonContentProvider):
 
 		info_labels = {'title': item['title'], 'plot': self._plot(item)}
 
-		# DRM prehrávanie - ak má používateľ session, ponúkneme prehratie prenosu
+		# ak má používateľ session, ponúkneme prehratie prenosu
 		if self._session():
 			self.add_video(self._("Play broadcast"), item.get('img'), info_labels, download=False,
 			               cmd=self.play_stream, product_id=item['id'])
@@ -316,7 +316,7 @@ class PlayLiveContentProvider(CommonContentProvider):
 
 		if not self._session():
 			self.add_video(_I(self._("Sign in with a code to play broadcasts")), item.get('img'),
-			               info_labels, download=False, cmd=self.drm_info)
+			               info_labels, download=False, cmd=self.paid_info)
 
 	# ##################################################################################################################
 
@@ -352,9 +352,9 @@ class PlayLiveContentProvider(CommonContentProvider):
 
 	# ##################################################################################################################
 
-	def drm_info(self):
+	def paid_info(self):
 		self.show_info(self._(
-			"PlayLive broadcasts are encrypted (DRM). To play one here, sign in using "
+			"PlayLive broadcasts are paid. To play one here, sign in using "
 			"\"Sign in with a code\" in the menu and buy the broadcast on playlive.net. "
 			"Trailers play without signing in."), noexit=True)
 
@@ -378,7 +378,7 @@ class PlayLiveContentProvider(CommonContentProvider):
 	# ##################################################################################################################
 
 	def get_dash_info(self, stream_key):
-		"""Vráti informácie pre DashHTTPRequestHandler - URL manifestu a DRM konfiguráciu."""
+		"""Vráti informácie pre DashHTTPRequestHandler - URL manifestu a licenčnú konfiguráciu."""
 		info = {
 			'url': stream_key['url'],
 			'bandwidth': stream_key.get('bandwidth'),
@@ -417,7 +417,7 @@ class PlayLiveContentProvider(CommonContentProvider):
 	# ##################################################################################################################
 
 	def resolve_dash_streams(self, manifest_url, license_url, sessid, title=''):
-		"""Rozlíši DASH streamy a pridá ich na prehrávanie s DRM."""
+		"""Rozlíši DASH streamy a pridá ich na prehrávanie."""
 		streams = self.get_dash_streams(manifest_url, max_bitrate=self.get_setting('max_bitrate'))
 		if not streams:
 			return False
@@ -442,7 +442,7 @@ class PlayLiveContentProvider(CommonContentProvider):
 	# ##################################################################################################################
 
 	def play_stream(self, product_id):
-		"""Prehrá DRM chránený prenos - zavolá /product/watch a spustí DASH stream."""
+		"""Prehrá platený prenos - zavolá /product/watch a spustí DASH stream."""
 		session = self._session()
 		if not session:
 			self.show_info(self._("Sign in first - use \"Sign in with a code\" in the menu."), noexit=True)
@@ -474,11 +474,11 @@ class PlayLiveContentProvider(CommonContentProvider):
 			return
 
 		if not license_url:
-			self.show_error(self._("No DRM license URL received. The stream cannot be played."))
+			self.show_error(self._("No license URL received. The stream cannot be played."))
 			return
 
 		# len server - cesta aj query obsahujú prístupový token (wmt:...JWT)
-		self.log_info("Playing DRM stream from: %s" % (mpd_url.split('/')[2] if mpd_url.count('/') >= 2 else '?'))
+		self.log_info("Playing stream from: %s" % (mpd_url.split('/')[2] if mpd_url.count('/') >= 2 else '?'))
 
 		if not self.resolve_dash_streams(mpd_url, license_url, session, title=title):
 			self.show_error(self._("Failed to load the DASH stream."))

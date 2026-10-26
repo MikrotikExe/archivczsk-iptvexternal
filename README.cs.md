@@ -70,8 +70,7 @@ pay-per-view (platforma Streamonline):
 - Katalog z veřejné nabídky: právě běží, nadcházející a odvysílané eventy,
   videa / záznamy, celá nabídka a vyhledávání (na straně doplňku)
 - Upoutávky se přehrají bez přihlášení (HLS s výběrem kvality)
-- Placené přenosy: DASH + Widevine DRM (BuyDRM / KeyOS) přes proxy
-  ArchivCZSK
+- Placené přenosy se přehrají přes proxy ArchivCZSK (DASH)
 - **Přihlášení kódem** stejně jako oficiální Smart TV aplikace: na
   `playlive.net/logcode` vygeneruješ 6místný kód a zadáš ho v doplňku —
   bez captchy a bez prohlížeče na přijímači. Přihlášení e-mailem a heslem

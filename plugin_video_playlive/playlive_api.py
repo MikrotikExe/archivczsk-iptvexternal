@@ -9,8 +9,8 @@
 #   products - predávané položky (PPV eventy, VOD), každá odkazuje na contentId
 #              a nesie varianty (basic/premium) s cenami a časom eventu
 #
-# Prihlásenie na čítanie katalógu nie je potrebné. Platené prenosy sú chránené
-# DRM (BuyDRM/KeyOS - Widevine) a pre ich prehrávanie je potrebné prihlásenie
+# Prihlásenie na čítanie katalógu nie je potrebné. Pre prehrávanie platených
+# prenosov je potrebné prihlásenie
 # cez kód (Smart TV device flow, connectDevice). Upútavky sú bez prihlásenia.
 #
 # Kód je písaný tak, aby bežal na Pythone 2 aj 3 (staršie Enigma2 image).
@@ -32,7 +32,7 @@ CACHE_SECONDS = 600
 LIVE_NO_END_SECONDS = 6 * 3600  # predpokladaná dĺžka eventu, keď offer neuvádza koniec
 
 # Kľúče na podpis požiadaviek - sú zapečené v ich webovom skripte. Podpis je obyčajná
-# kontrola, že požiadavka prišla od ich klienta; s DRM ani s prihlásením nesúvisí.
+# kontrola, že požiadavka prišla od ich klienta; s prihlásením nesúvisí.
 SIGN_KEYS = [
 	"1058b45d-53a9-4e25-a47a-132fd046b6d4",
 	"a897eced-b8f9-459f-851c-fae95c96632a",
@@ -473,7 +473,7 @@ class PlayLiveApi(object):
 		return None
 
 	# ##################################################################################################################
-	# DRM stream - volanie /product/watch a dešifrovanie odpovede
+	# Stream - volanie /product/watch a dekódovanie odpovede
 	# ##################################################################################################################
 
 	@staticmethod
@@ -508,11 +508,11 @@ class PlayLiveApi(object):
 		return json_mod.loads(json_str)
 
 	def get_stream(self, session_id, product_id):
-		"""Zavolá /product/watch a vráti dáta o streame vrátane DRM licenčných URL.
+		"""Zavolá /product/watch a vráti dáta o streame vrátane licenčných URL.
 
 		Vracia dict s kľúčmi:
 		  url        - MPD manifest URL
-		  license_url - Widevine license proxy URL (s lap parametrom)
+		  license_url - license proxy URL (s lap parametrom)
 		  pr_license_url - PlayReady license proxy URL (voliteľné)
 		"""
 		payload = {

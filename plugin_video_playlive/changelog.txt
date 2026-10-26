@@ -2,8 +2,7 @@
 - katalóg z verejného offer.json: práve beží, nadchádzajúce a odvysielané eventy,
   videá / záznamy, celá ponuka a vyhľadávanie (na strane doplnku)
 - upútavky sa prehrajú bez prihlásenia (HLS, výber kvality)
-- platené prenosy: DASH + Widevine DRM (BuyDRM / KeyOS) cez proxy archivCZSK,
-  licenčný proxy dostáva _sessid v URL; odpoveď /product/watch sa dešifruje
+- platené prenosy sa prehrajú cez proxy archivCZSK (DASH)
 - prihlásenie cez kód rovnako ako Smart TV appka: na playlive.net/logcode sa
   vygeneruje 6-miestny kód, ten sa zadá v doplnku (session/connectDevice) -
   bez captchy a bez prehliadača na prijímači; session sa uloží a prežije reštart

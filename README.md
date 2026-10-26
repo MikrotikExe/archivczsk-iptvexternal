@@ -70,8 +70,7 @@ events (Streamonline platform):
 - Catalogue from the public offer: live now, upcoming and past events,
   videos / VOD, the whole offer and search (client side)
 - Trailers play without signing in (HLS with quality selection)
-- Paid broadcasts: DASH + Widevine DRM (BuyDRM / KeyOS) through the
-  ArchivCZSK proxy
+- Paid broadcasts play through the ArchivCZSK proxy (DASH)
 - **Sign in with a code** the same way as the official Smart TV app: generate
   a 6-digit code at `playlive.net/logcode` and type it into the addon — no
   captcha and no browser on the receiver. E-mail/password login is not

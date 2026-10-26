@@ -6,8 +6,8 @@
 	</requires>
 	<extension point="archivczsk.addon.video"/>
 	<extension point="archivczsk.addon.metadata">
-		<description>PlayLive.net - events, VOD, trailers, login and DRM playback</description>
-		<description lang="sk">PlayLive.net - eventy, záznamy, upútavky, prihlásenie a DRM prehrávanie</description>
-		<description lang="cs">PlayLive.net - eventy, záznamy, upoutávky, přihlášení a DRM přehrávání</description>
+		<description>PlayLive.net - live events, VOD and trailers, sign in with a code</description>
+		<description lang="sk">PlayLive.net - živé eventy, záznamy a upútavky, prihlásenie cez kód</description>
+		<description lang="cs">PlayLive.net - živé eventy, záznamy a upoutávky, přihlášení kódem</description>
 	</extension>
 </addon>
