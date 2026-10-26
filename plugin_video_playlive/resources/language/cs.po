@@ -1,0 +1,232 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin_video_playlive\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-26 22:36+0100\n"
+"PO-Revision-Date: 2026-10-26 22:40+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: plugin_video_playlive/provider.py:52
+msgid "My account"
+msgstr "Můj účet"
+
+#: plugin_video_playlive/provider.py:55
+msgid "Sign out"
+msgstr "Odhlásit se"
+
+#: plugin_video_playlive/provider.py:58
+msgid "Sign in with a code"
+msgstr "Přihlásit se kódem"
+
+#: plugin_video_playlive/provider.py:60
+msgid "Live now"
+msgstr "Právě běží"
+
+#: plugin_video_playlive/provider.py:61
+msgid "Upcoming events"
+msgstr "Nadcházející eventy"
+
+#: plugin_video_playlive/provider.py:62
+msgid "Past events"
+msgstr "Odvysílané eventy"
+
+#: plugin_video_playlive/provider.py:63
+msgid "Videos / VOD"
+msgstr "Videa / záznamy"
+
+#: plugin_video_playlive/provider.py:64
+msgid "Whole offer"
+msgstr "Celá nabídka"
+
+#: plugin_video_playlive/provider.py:98
+msgid "Do you really want to sign out?"
+msgstr "Opravdu se chceš odhlásit?"
+
+#: plugin_video_playlive/provider.py:102
+msgid "Signed out."
+msgstr "Odhlášeno."
+
+#: plugin_video_playlive/provider.py:115
+msgid ""
+"Sign in with a code - no browser needed on this device.\n"
+"\n"
+"1. On your phone or PC open  playlive.net  and sign in\n"
+"2. Open  playlive.net/logcode  and press \"Generate code\"\n"
+"3. You will get a 6-digit code - then press OK here to type it"
+msgstr ""
+"Přihlášení kódem - na tomto zařízení není potřeba prohlížeč.\n"
+"\n"
+"1. V mobilu nebo PC otevři  playlive.net  a přihlas se\n"
+"2. Otevři  playlive.net/logcode  a stiskni „Generate code\"\n"
+"3. Dostaneš 6místný kód - pak zde stiskni OK a zadej ho"
+
+#: plugin_video_playlive/provider.py:123
+msgid "Enter the 6-digit code from playlive.net/logcode"
+msgstr "Zadej 6místný kód z playlive.net/logcode"
+
+#: plugin_video_playlive/provider.py:134
+msgid "The code is invalid or has expired. Generate a new one and try again."
+msgstr "Kód je neplatný nebo vypršel. Vygeneruj nový a zkus to znovu."
+
+#: plugin_video_playlive/provider.py:136
+msgid "Sign in failed. Please try again later."
+msgstr "Přihlášení selhalo. Zkus to později."
+
+#: plugin_video_playlive/provider.py:145
+msgid "Signed in successfully."
+msgstr "Přihlášení úspěšné."
+
+#: plugin_video_playlive/provider.py:155 plugin_video_playlive/provider.py:448
+msgid "Sign in first - use \"Sign in with a code\" in the menu."
+msgstr "Nejdřív se přihlas - použij „Přihlásit se kódem\" v menu."
+
+#: plugin_video_playlive/provider.py:165 plugin_video_playlive/provider.py:462
+msgid "Your sign-in has expired - sign in again with a code."
+msgstr "Přihlášení vypršelo - přihlas se znovu kódem."
+
+#: plugin_video_playlive/provider.py:167
+msgid "The account could not be loaded. Try signing in again with a code."
+msgstr "Účet se nepodařilo načíst. Zkus se znovu přihlásit kódem."
+
+#: plugin_video_playlive/provider.py:172
+#, python-format
+msgid "Signed in as: %s"
+msgstr "Přihlášen jako: %s"
+
+#: plugin_video_playlive/provider.py:175
+msgid "No purchased items found on the account."
+msgstr "Na účtu nebyly nalezeny žádné zakoupené položky."
+
+#: plugin_video_playlive/provider.py:188
+#, python-format
+msgid "expired %s"
+msgstr "vypršelo %s"
+
+#: plugin_video_playlive/provider.py:190
+#, python-format
+msgid "valid until %s"
+msgstr "platné do %s"
+
+#: plugin_video_playlive/provider.py:211 plugin_video_playlive/provider.py:239
+msgid "Failed to load the offer from PlayLive."
+msgstr "Nabídku z PlayLive se nepodařilo načíst."
+
+#: plugin_video_playlive/provider.py:222
+msgid "Nothing here yet."
+msgstr "Zatím tu nic není."
+
+#: plugin_video_playlive/provider.py:243
+msgid "Nothing found."
+msgstr "Nic se nenašlo."
+
+#: plugin_video_playlive/provider.py:275 plugin_video_playlive/provider.py:334
+#, python-format
+msgid "Starts: %s"
+msgstr "Začíná: %s"
+
+#: plugin_video_playlive/provider.py:278 plugin_video_playlive/provider.py:342
+#, python-format
+msgid "Venue: %s"
+msgstr "Místo: %s"
+
+#: plugin_video_playlive/provider.py:282
+#, python-format
+msgid "Price: %s"
+msgstr "Cena: %s"
+
+#: plugin_video_playlive/provider.py:296
+msgid "This item is no longer in the offer."
+msgstr "Tato položka už není v nabídce."
+
+#: plugin_video_playlive/provider.py:303
+msgid "Play broadcast"
+msgstr "Přehrát přenos"
+
+#: plugin_video_playlive/provider.py:308
+msgid "Trailer"
+msgstr "Upoutávka"
+
+#: plugin_video_playlive/provider.py:314
+msgid "Event info"
+msgstr "Info o eventu"
+
+#: plugin_video_playlive/provider.py:318
+msgid "Sign in with a code to play broadcasts"
+msgstr "Přihlas se kódem pro přehrávání přenosů"
+
+#: plugin_video_playlive/provider.py:336
+msgid "The event hasn't started yet."
+msgstr "Event ještě nezačal."
+
+#: plugin_video_playlive/provider.py:339
+#, python-format
+msgid "Ends: %s"
+msgstr "Končí: %s"
+
+#: plugin_video_playlive/provider.py:348
+#, python-format
+msgid "Type: %s"
+msgstr "Typ: %s"
+
+#: plugin_video_playlive/provider.py:349
+#, python-format
+msgid "Product ID: %s"
+msgstr "ID produktu: %s"
+
+#: plugin_video_playlive/provider.py:357
+msgid "PlayLive broadcasts are encrypted (DRM). To play one here, sign in using \"Sign in with a code\" in the menu and buy the broadcast on playlive.net. Trailers play without signing in."
+msgstr "Přenosy PlayLive jsou šifrované (DRM). Pro přehrávání se přihlas přes „Přihlásit se kódem\" v menu a přenos si kup na playlive.net. Upoutávky jdou bez přihlášení."
+
+#: plugin_video_playlive/provider.py:371
+msgid "Failed to load the trailer."
+msgstr "Upoutávku se nepodařilo načíst."
+
+#: plugin_video_playlive/provider.py:464
+msgid "You don't have access to this broadcast. Buy it at playlive.net first."
+msgstr "Na tento přenos nemáš přístup. Nejdřív si ho kup na playlive.net."
+
+#: plugin_video_playlive/provider.py:466
+msgid "Playback failed. Your sign-in may have expired - sign in again with a code."
+msgstr "Přehrávání selhalo. Přihlášení možná vypršelo - přihlas se znovu kódem."
+
+#: plugin_video_playlive/provider.py:473
+msgid "No stream URL received from server."
+msgstr "Ze serveru nepřišla URL streamu."
+
+#: plugin_video_playlive/provider.py:477
+msgid "No DRM license URL received. The stream cannot be played."
+msgstr "Nepřišla DRM licenční URL. Stream nelze přehrát."
+
+#: plugin_video_playlive/provider.py:484
+msgid "Failed to load the DASH stream."
+msgstr "DASH stream se nepodařilo načíst."
+
+msgid "Session (set automatically after sign-in)"
+msgstr "Session (nastaví se automaticky po přihlášení)"
+
+msgid "Maximum bandwidth of the offered stream"
+msgstr "Maximální datový tok nabízeného streamu"
+
+msgid "Unlimited"
+msgstr "Bez omezení"
+
+msgid "8 Mbit/s"
+msgstr "8 Mbit/s"
+
+msgid "6 Mbit/s"
+msgstr "6 Mbit/s"
+
+msgid "4 Mbit/s"
+msgstr "4 Mbit/s"
+
+msgid "3 Mbit/s"
+msgstr "3 Mbit/s"
+
+msgid "2 Mbit/s"
+msgstr "2 Mbit/s"

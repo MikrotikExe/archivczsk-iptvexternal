@@ -8,7 +8,8 @@ Enigma2 plugin.
 Pridáva podporu externých IPTV zdrojov (Tvheadend server, M3U playlist)
 generovaním Enigma2 userbouquetov a injektovaním EPG, takže kanály sa
 zobrazia natívne v zozname kanálov Enigma2, a obsahuje aj doplnky
-streamovacích služieb, ktoré nie sú v oficiálnom repe (OKTAGON.tv).
+streamovacích služieb, ktoré nie sú v oficiálnom repe (OKTAGON.tv,
+PlayLive.net).
 
 ## Doplnky v tomto repe
 
@@ -61,6 +62,25 @@ platforme Tivio / Streamonline:
 - Beží na Pythone 2 aj 3 (staršie image)
 - Lokalizácia: 🇸🇰 slovenčina, 🇨🇿 čeština, 🇬🇧 angličtina
 
+### 🎟️ plugin.video.playlive — PlayLive.net
+
+Klient pre [PlayLive.net](https://playlive.net/) — živé a VOD prenosy
+pay-per-view (platforma Streamonline):
+
+- Katalóg z verejnej ponuky: práve beží, nadchádzajúce a odvysielané eventy,
+  videá / záznamy, celá ponuka a vyhľadávanie (na strane doplnku)
+- Upútavky sa prehrajú bez prihlásenia (HLS s výberom kvality)
+- Platené prenosy: DASH + Widevine DRM (BuyDRM / KeyOS) cez proxy
+  ArchivCZSK
+- **Prihlásenie cez kód** rovnako ako oficiálna Smart TV appka: na
+  `playlive.net/logcode` vygeneruješ 6-miestny kód a zadáš ho v doplnku —
+  bez captchy a bez prehliadača na prijímači. Prihlásenie e-mailom a heslom
+  nie je podporované, PlayLive ho chráni reCAPTCHA Enterprise
+- Vypršané prihlásenie doplnok rozpozná a ponúkne nové prihlásenie;
+  odhlásenie z hlavného menu
+- Do logu sa nikdy nezapíše session ani prístupový token streamu
+- Lokalizácia: 🇸🇰 slovenčina, 🇨🇿 čeština, 🇬🇧 angličtina
+
 ## Inštalácia v ArchivCZSK
 
 V ArchivCZSK GUI prejdi na správu repozitárov a pridaj URL tohto repa.
@@ -69,8 +89,8 @@ Podrobný postup sa doplní keď bude funkcia oficiálne dostupná v ArchivCZSK.
 ## Vývoj a vydávanie nových verzií
 
 Source code každého doplnku je vo vlastnom adresári v koreni repa:
-`plugin_video_tvheadend/`, `plugin_video_e2m3u2bouquet/` a
-`plugin_video_oktagontv/`.
+`plugin_video_tvheadend/`, `plugin_video_e2m3u2bouquet/`,
+`plugin_video_oktagontv/` a `plugin_video_playlive/`.
 
 ### Pridanie nových lokalizačných stringov
 
@@ -122,9 +142,12 @@ a ponúkne update koncovým používateľom.
 │   │   └── plugin.video.tvheadend-1.0.2.zip
 │   ├── plugin.video.oktagontv/
 │   │   └── plugin.video.oktagontv-1.0.1.zip
+│   ├── plugin.video.playlive/
+│   │   └── plugin.video.playlive-1.0.0.zip
 │   └── plugin.video.e2m3u2bouquet/
 │       └── plugin.video.e2m3u2bouquet-1.0.0.zip
 ├── plugin_video_oktagontv/                  ← source: klient OKTAGON.tv
+├── plugin_video_playlive/                   ← source: klient PlayLive.net
 ├── plugin_video_tvheadend/                  ← source: Tvheadend klient
 └── plugin_video_e2m3u2bouquet/              ← source: M3U to Bouquet
 ```
@@ -151,7 +174,8 @@ Tento repozitár obsahuje doplnky ktoré napájajú externé IPTV zdroje
 (Tvheadend server, M3U playlist) do Enigma2 cez ArchivCZSK framework
 a automaticky generujú userbouquety pre prehliadanie v Enigma2 channel
 liste, a tiež doplnky streamovacích služieb, ktoré nie sú súčasťou
-oficiálneho repa (zatiaľ klient OKTAGON.tv / OKTAGON MMA).
+oficiálneho repa (zatiaľ klienti OKTAGON.tv / OKTAGON MMA
+a PlayLive.net).
 Pôvodne navrhnuté ako PR do oficiálneho
 [`archivczsk/archivczsk-doplnky`](https://github.com/archivczsk/archivczsk-doplnky)
 repa — po review-i sme sa s autorom ArchivCZSK

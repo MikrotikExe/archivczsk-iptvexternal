@@ -8,7 +8,8 @@ Enigma2 plugin.
 Adds support for external IPTV sources (Tvheadend server, M3U playlist) by
 generating Enigma2 userbouquets and injecting EPG so channels appear
 natively in the Enigma2 channel list, and hosts streaming service clients
-that are maintained outside the official addon repository (OKTAGON.tv).
+that are maintained outside the official addon repository (OKTAGON.tv,
+PlayLive.net).
 
 ## Addons in this repository
 
@@ -61,6 +62,25 @@ Tivio / Streamonline platform:
 - Runs on Python 2 and 3 (older images)
 - Localisation: 🇸🇰 Slovak, 🇨🇿 Czech, 🇬🇧 English
 
+### 🎟️ plugin.video.playlive — PlayLive.net
+
+Client for [PlayLive.net](https://playlive.net/) — live and VOD pay-per-view
+events (Streamonline platform):
+
+- Catalogue from the public offer: live now, upcoming and past events,
+  videos / VOD, the whole offer and search (client side)
+- Trailers play without signing in (HLS with quality selection)
+- Paid broadcasts: DASH + Widevine DRM (BuyDRM / KeyOS) through the
+  ArchivCZSK proxy
+- **Sign in with a code** the same way as the official Smart TV app: generate
+  a 6-digit code at `playlive.net/logcode` and type it into the addon — no
+  captcha and no browser on the receiver. E-mail/password login is not
+  supported, PlayLive protects it with reCAPTCHA Enterprise
+- Expired sign-in is detected and the addon offers signing in again; sign out
+  from the main menu
+- Neither the session nor the stream access token is ever written to the log
+- Localisation: 🇸🇰 Slovak, 🇨🇿 Czech, 🇬🇧 English
+
 ## Installing in ArchivCZSK
 
 In the ArchivCZSK GUI, open repository management and add the URL of this
@@ -70,8 +90,8 @@ officially available in ArchivCZSK.
 ## Development and releases
 
 Source code of every addon lives in its own top level directory:
-`plugin_video_tvheadend/`, `plugin_video_e2m3u2bouquet/` and
-`plugin_video_oktagontv/`.
+`plugin_video_tvheadend/`, `plugin_video_e2m3u2bouquet/`,
+`plugin_video_oktagontv/` and `plugin_video_playlive/`.
 
 ### Adding new localisation strings
 
@@ -123,9 +143,12 @@ GitHub and offers the update to end users.
 │   │   └── plugin.video.tvheadend-1.0.2.zip
 │   ├── plugin.video.oktagontv/
 │   │   └── plugin.video.oktagontv-1.0.1.zip
+│   ├── plugin.video.playlive/
+│   │   └── plugin.video.playlive-1.0.0.zip
 │   └── plugin.video.e2m3u2bouquet/
 │       └── plugin.video.e2m3u2bouquet-1.0.0.zip
 ├── plugin_video_oktagontv/                  ← source: OKTAGON.tv client
+├── plugin_video_playlive/                   ← source: PlayLive.net client
 ├── plugin_video_tvheadend/                  ← source: Tvheadend client
 └── plugin_video_e2m3u2bouquet/              ← source: M3U to Bouquet
 ```
@@ -153,7 +176,7 @@ This repository hosts addons that connect external IPTV sources
 framework and auto-generate userbouquets so channels show up in the
 Enigma2 channel list, plus clients for streaming services that are not
 part of the official addon repository (currently the OKTAGON.tv / OKTAGON
-MMA client). Originally proposed as a PR to the official
+MMA and PlayLive.net clients). Originally proposed as a PR to the official
 [`archivczsk/archivczsk-doplnky`](https://github.com/archivczsk/archivczsk-doplnky)
 repository — after review with the ArchivCZSK maintainer
 ([@skyjet18](https://github.com/skyjet18)) we agreed to keep them in
